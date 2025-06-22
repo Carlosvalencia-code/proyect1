@@ -1,0 +1,8 @@
+{
+  "name": "Synthia Style0406",
+  "description": "An AI-powered personal style advisor that analyzes facial features and colorimetry to provide personalized fashion recommendations.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "prompt": ""
+}

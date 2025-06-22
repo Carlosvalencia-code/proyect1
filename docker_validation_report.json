@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-06-06 02:21:05",
+  "total_tests": 10,
+  "passed_tests": 5,
+  "failed_tests": 5,
+  "success_rate": 50.0,
+  "test_results": [
+    [
+      "Docker Availability",
+      false
+    ],
+    [
+      "File Structure",
+      true
+    ],
+    [
+      "Dockerfile Syntax",
+      true
+    ],
+    [
+      "Docker Compose Syntax",
+      false
+    ],
+    [
+      "Environment Configuration",
+      true
+    ],
+    [
+      "Script Permissions",
+      true
+    ],
+    [
+      "Makefile",
+      true
+    ],
+    [
+      "Development Build",
+      false
+    ],
+    [
+      "Production Build",
+      false
+    ],
+    [
+      "Quick Startup",
+      false
+    ]
+  ],
+  "errors": [
+    "Docker not available"
+  ],
+  "warnings": [
+    "Cannot make executable: scripts/setup-dev.sh",
+    "Cannot make executable: scripts/deploy-prod.sh",
+    "Cannot make executable: scripts/health-check.sh",
+    "Cannot make executable: docker/nginx/scripts/generate-ssl.sh"
+  ],
+  "overall_status": "FAIL"
+}

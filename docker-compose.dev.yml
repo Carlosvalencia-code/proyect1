@@ -1,0 +1,249 @@
+# =============================================================================
+# SYNTHIA STYLE - DOCKER COMPOSE DEVELOPMENT ENVIRONMENT
+# =============================================================================
+# Optimized for development with hot-reload, debugging, and easy setup
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # DATABASE - POSTGRESQL
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: synthia-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: synthia_style_db
+      POSTGRES_USER: synthia_user
+      POSTGRES_PASSWORD: synthia_dev_password_2024
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - synthia-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synthia_user -d synthia_style_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # =============================================================================
+  # CACHE - REDIS
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: synthia-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_dev_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - synthia-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # =============================================================================
+  # BACKEND - FASTAPI
+  # =============================================================================
+  synthia-backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.dev
+      args:
+        - ENVIRONMENT=development
+    container_name: synthia-backend-dev
+    restart: unless-stopped
+    environment:
+      # Application settings
+      - APP_NAME=Synthia Style API Dev
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      
+      # Database
+      - DATABASE_URL=postgresql://synthia_user:synthia_dev_password_2024@postgres:5432/synthia_style_db
+      - DATABASE_POOL_SIZE=5
+      - DATABASE_MAX_OVERFLOW=10
+      
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=true
+      - CACHE_TTL_SECONDS=1800
+      
+      # Security
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev_jwt_secret_key_change_in_production_2024}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      
+      # External APIs
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      
+      # CORS
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:80
+    volumes:
+      - ./backend:/app:cached
+      - backend_dev_uploads:/app/uploads
+      - backend_dev_logs:/app/logs
+      - /app/node_modules  # Prevent node_modules override
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - synthia-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/cache/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # =============================================================================
+  # FRONTEND - REACT WITH VITE
+  # =============================================================================
+  synthia-frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend/Dockerfile.dev
+      args:
+        - REACT_APP_API_URL=http://localhost:8000/api/v1
+        - REACT_APP_ENVIRONMENT=development
+    container_name: synthia-frontend-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://localhost:8000/api/v1
+      - REACT_APP_ENVIRONMENT=development
+      - REACT_APP_VERSION=2.0.0-dev
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend:/app:cached
+      - frontend_dev_node_modules:/app/node_modules
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    networks:
+      - synthia-dev
+    depends_on:
+      - synthia-backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # =============================================================================
+  # DEVELOPMENT TOOLS
+  # =============================================================================
+  
+  # Database Administration
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: synthia-pgadmin-dev
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@synthia.style
+      PGADMIN_DEFAULT_PASSWORD: admin_dev_2024
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_dev_data:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - synthia-dev
+    depends_on:
+      - postgres
+    profiles:
+      - tools
+
+  # Redis Administration
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: synthia-redis-commander-dev
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=admin_dev_2024
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+    networks:
+      - synthia-dev
+    depends_on:
+      - redis
+    profiles:
+      - tools
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  synthia-dev:
+    driver: bridge
+    name: synthia-dev-network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  postgres_dev_data:
+    name: synthia_postgres_dev_data
+    driver: local
+  
+  redis_dev_data:
+    name: synthia_redis_dev_data
+    driver: local
+  
+  backend_dev_uploads:
+    name: synthia_backend_dev_uploads
+    driver: local
+  
+  backend_dev_logs:
+    name: synthia_backend_dev_logs
+    driver: local
+  
+  frontend_dev_node_modules:
+    name: synthia_frontend_dev_node_modules
+    driver: local
+  
+  pgadmin_dev_data:
+    name: synthia_pgadmin_dev_data
+    driver: local

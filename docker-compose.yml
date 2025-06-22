@@ -1,63 +1,109 @@
-# Docker Compose para Synthia Style Backend
+# =============================================================================
+# SYNTHIA STYLE - MAIN DOCKER COMPOSE FILE
+# =============================================================================
+# Default development environment with quick setup
+
 version: '3.8'
 
 services:
-  # Base de datos PostgreSQL
+  # =============================================================================
+  # DATABASE - POSTGRESQL
+  # =============================================================================
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
+    container_name: synthia-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: synthia_style_db
       POSTGRES_USER: synthia_user
-      POSTGRES_PASSWORD: synthia_password
+      POSTGRES_PASSWORD: synthia_password_2024
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - synthia-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U synthia_user -d synthia_style_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
-  # Redis (opcional para cache)
+  # =============================================================================
+  # CACHE - REDIS
+  # =============================================================================
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    container_name: synthia-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - synthia-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Aplicación FastAPI
+  # =============================================================================
+  # BACKEND - FASTAPI
+  # =============================================================================
   synthia-backend:
-    build: .
-    ports:
-      - "8000:8000"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: synthia-backend
+    restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://synthia_user:synthia_password@postgres:5432/synthia_style_db
-      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://synthia_user:synthia_password_2024@postgres:5432/synthia_style_db
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=true
       - ENVIRONMENT=development
       - DEBUG=true
-      - SECRET_KEY=your-super-secret-key-change-this-in-production
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev_jwt_secret_key_change_in_production}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:80
     volumes:
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
+      - ./backend/uploads:/app/uploads
+      - ./backend/logs:/app/logs
+    ports:
+      - "8000:8000"
+    networks:
+      - synthia-network
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/cache/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  synthia-network:
+    driver: bridge
+    name: synthia-default-network
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
 volumes:
   postgres_data:
+    name: synthia_postgres_data
+    driver: local
+  
   redis_data:
+    name: synthia_redis_data
+    driver: local

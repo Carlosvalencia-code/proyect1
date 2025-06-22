@@ -1,0 +1,351 @@
+# =============================================================================
+# SYNTHIA STYLE - DOCKER COMPOSE PRODUCTION ENVIRONMENT
+# =============================================================================
+# Production-ready configuration with security, monitoring, and scalability
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # REVERSE PROXY - NGINX
+  # =============================================================================
+  nginx-proxy:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    container_name: synthia-nginx-proxy
+    restart: unless-stopped
+    environment:
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+      - certbot_data:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    networks:
+      - synthia-public
+      - synthia-internal
+    depends_on:
+      - synthia-backend
+      - synthia-frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  # =============================================================================
+  # DATABASE - POSTGRESQL
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: synthia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-synthia_style_db}
+      POSTGRES_USER: ${POSTGRES_USER:-synthia_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - synthia-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-synthia_user} -d ${POSTGRES_DB:-synthia_style_db}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # =============================================================================
+  # CACHE - REDIS
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: synthia-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+      - ./config/redis-prod.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - synthia-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # =============================================================================
+  # BACKEND - FASTAPI
+  # =============================================================================
+  synthia-backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.prod
+      args:
+        - ENVIRONMENT=production
+    container_name: synthia-backend
+    restart: unless-stopped
+    environment:
+      # Application settings
+      - APP_NAME=Synthia Style API
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      
+      # Database
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-synthia_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-synthia_style_db}
+      - DATABASE_POOL_SIZE=20
+      - DATABASE_MAX_OVERFLOW=40
+      
+      # Redis
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - REDIS_ENABLED=true
+      - CACHE_TTL_SECONDS=3600
+      - CACHE_COMPRESSION_ENABLED=true
+      
+      # Security
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      
+      # External APIs
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      
+      # CORS (production domains)
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://synthia.style,https://www.synthia.style}
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
+    networks:
+      - synthia-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/cache/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # =============================================================================
+  # FRONTEND - REACT
+  # =============================================================================
+  synthia-frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend/Dockerfile.prod
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-https://synthia.style/api/v1}
+        - REACT_APP_ENVIRONMENT=production
+        - REACT_APP_VERSION=2.0.0
+    container_name: synthia-frontend
+    restart: unless-stopped
+    networks:
+      - synthia-internal
+    depends_on:
+      - synthia-backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+
+  # =============================================================================
+  # SSL CERTIFICATE RENEWAL
+  # =============================================================================
+  certbot:
+    image: certbot/certbot:latest
+    container_name: synthia-certbot
+    volumes:
+      - certbot_data:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN} -d www.${DOMAIN}
+    networks:
+      - synthia-internal
+    depends_on:
+      - nginx-proxy
+    profiles:
+      - ssl
+
+  # =============================================================================
+  # MONITORING & OBSERVABILITY
+  # =============================================================================
+  
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: synthia-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - synthia-internal
+    profiles:
+      - monitoring
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: synthia-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - synthia-internal
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  synthia-public:
+    driver: bridge
+    name: synthia-public-network
+    
+  synthia-internal:
+    driver: bridge
+    name: synthia-internal-network
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  # Database
+  postgres_data:
+    name: synthia_postgres_data
+    driver: local
+  
+  # Cache
+  redis_data:
+    name: synthia_redis_data
+    driver: local
+  
+  # Application data
+  backend_uploads:
+    name: synthia_backend_uploads
+    driver: local
+  
+  backend_logs:
+    name: synthia_backend_logs
+    driver: local
+  
+  # Nginx
+  nginx_cache:
+    name: synthia_nginx_cache
+    driver: local
+  
+  # SSL Certificates
+  certbot_data:
+    name: synthia_certbot_data
+    driver: local
+  
+  certbot_www:
+    name: synthia_certbot_www
+    driver: local
+  
+  # Monitoring
+  prometheus_data:
+    name: synthia_prometheus_data
+    driver: local
+  
+  grafana_data:
+    name: synthia_grafana_data
+    driver: local
