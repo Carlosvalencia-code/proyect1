@@ -1,109 +1,63 @@
-# =============================================================================
-# SYNTHIA STYLE - MAIN DOCKER COMPOSE FILE
-# =============================================================================
-# Default development environment with quick setup
-
+# Docker Compose para Synthia Style Backend
 version: '3.8'
 
 services:
-  # =============================================================================
-  # DATABASE - POSTGRESQL
-  # =============================================================================
+  # Base de datos PostgreSQL
   postgres:
-    image: postgres:15-alpine
-    container_name: synthia-postgres
-    restart: unless-stopped
+    image: postgres:15
     environment:
       POSTGRES_DB: synthia_style_db
       POSTGRES_USER: synthia_user
-      POSTGRES_PASSWORD: synthia_password_2024
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+      POSTGRES_PASSWORD: synthia_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    networks:
-      - synthia-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U synthia_user -d synthia_style_db"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
 
-  # =============================================================================
-  # CACHE - REDIS
-  # =============================================================================
+  # Redis (opcional para cache)
   redis:
     image: redis:7-alpine
-    container_name: synthia-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
-    volumes:
-      - redis_data:/data
     ports:
       - "6379:6379"
-    networks:
-      - synthia-network
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # =============================================================================
-  # BACKEND - FASTAPI
-  # =============================================================================
+  # Aplicación FastAPI
   synthia-backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: synthia-backend
-    restart: unless-stopped
-    environment:
-      - DATABASE_URL=postgresql://synthia_user:synthia_password_2024@postgres:5432/synthia_style_db
-      - REDIS_URL=redis://redis:6379/0
-      - REDIS_ENABLED=true
-      - ENVIRONMENT=development
-      - DEBUG=true
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev_jwt_secret_key_change_in_production}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:80
-    volumes:
-      - ./backend/uploads:/app/uploads
-      - ./backend/logs:/app/logs
+    build: .
     ports:
       - "8000:8000"
-    networks:
-      - synthia-network
+    environment:
+      - DATABASE_URL=postgresql://synthia_user:synthia_password@postgres:5432/synthia_style_db
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - SECRET_KEY=your-super-secret-key-change-this-in-production
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/cache/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
 
-# =============================================================================
-# NETWORKS
-# =============================================================================
-networks:
-  synthia-network:
-    driver: bridge
-    name: synthia-default-network
-
-# =============================================================================
-# VOLUMES
-# =============================================================================
 volumes:
   postgres_data:
-    name: synthia_postgres_data
-    driver: local
-  
   redis_data:
-    name: synthia_redis_data
-    driver: local

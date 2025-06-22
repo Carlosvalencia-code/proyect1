@@ -1,0 +1,78 @@
+# FastAPI y dependencias core
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# Base de datos y ORM
+asyncpg==0.29.0
+prisma==0.11.0
+databases[postgresql]==0.8.0
+
+# Validación y serialización
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Manejo de archivos e imágenes
+pillow==10.1.0
+aiofiles==23.2.1
+
+# IA y análisis
+google-generativeai==0.3.2
+
+# Logging y monitoreo
+loguru==0.7.2
+structlog==23.2.0
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# Desarrollo
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+
+# CORS y middleware
+fastapi-cors==0.0.6
+
+# Criptografía y seguridad
+cryptography==41.0.8
+bcrypt==4.1.2
+
+# Utilidades
+python-slugify==8.0.1
+pytz==2023.3
+
+# Redis para cache y sesiones
+redis==5.0.1
+aioredis==2.0.1
+hiredis==2.2.3  # Parser C para mejor performance
+
+# Compresión para cache
+lz4==4.3.2
+zstandard==0.22.0
+
+# Métricas y monitoring
+prometheus-client==0.19.0
+
+# HTTP requests y merchant integration
+aiohttp==3.9.1
+httpx==0.25.2
+beautifulsoup4==4.12.2  # Para parsing HTML si se necesita scraping
+lxml==4.9.3  # Parser XML/HTML rápido
+urllib3==2.1.0
+
+# Serialización y formateo
+msgpack==1.0.7  # Serialización binaria eficiente
+orjson==3.9.10  # JSON rápido
+
+# Decimal handling para precios
+decimal==1.70
+
+# Compatibilidad con Flask (para migración)
+werkzeug==3.0.1
