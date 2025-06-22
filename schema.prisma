@@ -1,0 +1,581 @@
+// Esquema de base de datos para Synthia Style
+// PostgreSQL con Prisma ORM
+
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = 5
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enumeraciones para usuarios
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+  PRO
+  ENTERPRISE
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum SkinTone {
+  VERY_LIGHT
+  LIGHT
+  LIGHT_MEDIUM
+  MEDIUM
+  MEDIUM_DARK
+  DARK
+  VERY_DARK
+}
+
+enum HairColor {
+  BLONDE
+  BROWN
+  BLACK
+  RED
+  GRAY
+  WHITE
+  OTHER
+}
+
+enum EyeColor {
+  BLUE
+  GREEN
+  BROWN
+  HAZEL
+  GRAY
+  AMBER
+  OTHER
+}
+
+// Modelo de usuario extendido
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String?
+  lastName  String?
+  
+  // Información del perfil extendido
+  dateOfBirth DateTime?
+  gender      String? // "male", "female", "non-binary", "prefer-not-to-say"
+  location    String? // Ciudad/País opcional
+  skinTone    SkinTone?
+  hairColor   HairColor?
+  eyeColor    EyeColor?
+  
+  // Sistema de roles y suscripciones
+  role             UserRole         @default(USER)
+  subscriptionTier SubscriptionTier @default(FREE)
+  subscriptionExpiry DateTime?
+  
+  // Tracking de actividad
+  lastActive       DateTime?
+  onboardingCompleted Boolean @default(false)
+  onboardingStep   Int     @default(0)
+  loginCount       Int     @default(0)
+  
+  // Límites de uso por suscripción
+  monthlyAnalysisCount    Int @default(0)
+  monthlyAnalysisLimit    Int @default(5) // Límite para FREE
+  lastAnalysisReset       DateTime @default(now())
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  isVerified Boolean @default(false)
+  
+  // Relaciones existentes
+  preferences UserPreferences?
+  facialAnalyses    FacialAnalysis[]
+  chromaticAnalyses ChromaticAnalysis[]
+  feedbacks Feedback[]
+  
+  // Nuevas relaciones
+  profile             UserProfile?
+  analytics           UserAnalytics?
+  onboarding          UserOnboarding?
+  subscriptionHistory SubscriptionHistory[]
+  dailyUsage          DailyUsage[]
+  
+  @@map("users")
+}
+
+// Preferencias del usuario expandidas
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Preferencias de notificaciones
+  emailNotifications    Boolean @default(true)
+  pushNotifications     Boolean @default(true)
+  marketingEmails       Boolean @default(false)
+  analysisReminders     Boolean @default(true)
+  weeklyDigest         Boolean @default(true)
+  
+  // Preferencias de privacidad
+  shareAnalytics       Boolean @default(false)
+  profileVisibility    String  @default("private") // private, public, friends
+  showAnalysisHistory  Boolean @default(true)
+  allowDataExport      Boolean @default(true)
+  dataRetentionDays    Int     @default(365)
+  
+  // Preferencias de análisis
+  autoSaveResults      Boolean @default(true)
+  detailedRecommendations Boolean @default(true)
+  includeConfidenceScore Boolean @default(true)
+  preferredLanguage    String  @default("es") // es, en, fr, etc.
+  
+  // Preferencias de interfaz
+  theme               String @default("light") // light, dark, auto
+  currency            String @default("USD")
+  timezone            String @default("UTC")
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("user_preferences")
+}
+
+// Perfil extendido del usuario
+model UserProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Información personal adicional
+  bio                String?  @db.Text
+  website           String?
+  profession        String?
+  interests         String[] // Array de intereses
+  
+  // Preferencias de estilo
+  stylePreferences  Json? // Preferencias detalladas de estilo
+  favoriteColors    String[] // Colores favoritos
+  fashionGoals      String[] // Objetivos de moda
+  budgetRange       String? // "low", "medium", "high", "luxury"
+  
+  // Información de medidas (opcional)
+  height            Float? // En centímetros
+  weight            Float? // En kilogramos
+  bodyType          String? // "pear", "apple", "hourglass", "rectangle", "inverted-triangle"
+  
+  // Social media (opcional)
+  instagramHandle   String?
+  tiktokHandle      String?
+  linkedinProfile   String?
+  
+  // Configuración de compartir
+  allowPublicProfile Boolean @default(false)
+  showStatsPublicly  Boolean @default(false)
+  showRecommendationsPublicly Boolean @default(false)
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("user_profiles")
+}
+
+// Analytics del usuario
+model UserAnalytics {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Estadísticas de uso
+  totalSessions         Int @default(0)
+  totalTimeSpent        Int @default(0) // En minutos
+  averageSessionTime    Float @default(0.0)
+  
+  // Análisis realizados
+  totalFacialAnalyses   Int @default(0)
+  totalChromaticAnalyses Int @default(0)
+  mostFrequentAnalysisDay String? // "monday", "tuesday", etc.
+  mostActiveHour        Int? // 0-23
+  
+  // Engagement
+  feedbackGiven         Int @default(0)
+  recommendationsShared Int @default(0)
+  profileViews          Int @default(0)
+  
+  // Patrones de comportamiento
+  preferredAnalysisType String? // "facial", "chromatic", "both"
+  averageConfidenceScore Float @default(0.0)
+  improvementTrend      Float @default(0.0) // Tendencia de mejora
+  
+  // Conversión y retención
+  onboardingCompletion  Float @default(0.0) // Porcentaje de onboarding completado
+  retentionScore        Float @default(0.0) // Puntuación de retención
+  churnRisk            String @default("low") // "low", "medium", "high"
+  
+  // Datos de último período (30 días)
+  recentAnalyses        Int @default(0)
+  recentSessions        Int @default(0)
+  recentEngagement      Float @default(0.0)
+  
+  // Metadatos
+  lastCalculated        DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  @@map("user_analytics")
+}
+
+// Historial de suscripciones
+model SubscriptionHistory {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Detalles de la suscripción
+  tier              SubscriptionTier
+  startDate         DateTime
+  endDate           DateTime?
+  isActive          Boolean @default(true)
+  
+  // Información de pago
+  amount            Float?
+  currency          String @default("USD")
+  paymentMethod     String? // "card", "paypal", "crypto", etc.
+  transactionId     String?
+  
+  // Razón del cambio
+  changeReason      String? // "upgrade", "downgrade", "cancellation", "renewal"
+  previousTier      SubscriptionTier?
+  
+  // Metadatos
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("subscription_history")
+}
+
+// Análisis facial
+model FacialAnalysis {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Imagen analizada
+  imageUrl      String
+  imageMetadata Json? // metadata como dimensiones, formato, etc.
+  
+  // Resultados del análisis
+  faceShape           String // ovalado, redondo, cuadrado, etc.
+  featuresHighlighted String[] // características destacadas
+  confidenceLevel     Int      // 1-100
+  
+  // Análisis detallado
+  analysisData Json // datos completos del análisis de Gemini
+  
+  // Recomendaciones generadas
+  recommendations FacialRecommendation[]
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("facial_analyses")
+}
+
+// Recomendaciones faciales
+model FacialRecommendation {
+  id              String @id @default(cuid())
+  facialAnalysisId String
+  facialAnalysis  FacialAnalysis @relation(fields: [facialAnalysisId], references: [id], onDelete: Cascade)
+  
+  // Tipo de recomendación
+  category    String // cortes_pelo, gafas, escotes
+  
+  // Detalles de la recomendación
+  name        String
+  description String
+  explanation String
+  
+  // Metadatos adicionales
+  metadata Json?
+  
+  // Puntuación de la recomendación
+  score    Float?
+  priority Int    @default(1)
+  
+  @@map("facial_recommendations")
+}
+
+// Análisis cromático
+model ChromaticAnalysis {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Respuestas del quiz
+  quizResponses Json
+  
+  // Resultados del análisis
+  colorSeason     String // invierno, primavera, verano, otoño
+  skinUndertone   String // frío, cálido, neutro
+  confidenceLevel Int    // 1-100
+  
+  // Descripción de la estación
+  description String?
+  
+  // Análisis detallado
+  analysisData Json // datos completos del análisis de Gemini
+  
+  // Recomendaciones de color
+  colorRecommendations ColorRecommendation[]
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("chromatic_analyses")
+}
+
+// Recomendaciones de color
+model ColorRecommendation {
+  id                 String @id @default(cuid())
+  chromaticAnalysisId String
+  chromaticAnalysis  ChromaticAnalysis @relation(fields: [chromaticAnalysisId], references: [id], onDelete: Cascade)
+  
+  // Tipo de recomendación
+  type        String // primary_palette, colors_to_avoid
+  
+  // Detalles del color
+  colorName   String
+  hexCode     String
+  explanation String
+  
+  // Metadatos adicionales
+  metadata Json?
+  
+  // Puntuación de la recomendación
+  score    Float?
+  priority Int    @default(1)
+  
+  @@map("color_recommendations")
+}
+
+// Feedback del usuario
+model Feedback {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Tipo de feedback
+  category String // facial_analysis, color_analysis, general, bug_report
+  
+  // Contenido del feedback
+  content String
+  rating  Int?   // 1-5 estrellas
+  
+  // Contexto
+  contextData Json? // datos adicionales del contexto donde se generó el feedback
+  
+  // Estado del feedback
+  status String @default("pending") // pending, reviewed, resolved
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("feedbacks")
+}
+
+// Sesiones de usuario (para autenticación)
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  isActive  Boolean  @default(true)
+  
+  // Información de la sesión
+  userAgent String?
+  ipAddress String?
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("user_sessions")
+}
+
+// Logs de actividad del sistema
+model ActivityLog {
+  id     String @id @default(cuid())
+  userId String?
+  
+  // Detalles de la actividad
+  action      String // login, logout, facial_analysis, color_analysis, etc.
+  resource    String? // recurso afectado
+  description String?
+  
+  // Contexto adicional
+  metadata Json?
+  
+  // Información de la request
+  ipAddress String?
+  userAgent String?
+  
+  // Estado de la operación
+  status String @default("success") // success, error, warning
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  
+  @@map("activity_logs")
+}
+
+// Progreso de onboarding del usuario
+model UserOnboarding {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Pasos del onboarding
+  welcomeCompleted        Boolean @default(false)
+  profileSetupCompleted   Boolean @default(false)
+  preferencesSetCompleted Boolean @default(false)
+  firstAnalysisCompleted  Boolean @default(false)
+  tutorialCompleted       Boolean @default(false)
+  
+  // Progreso específico
+  currentStep            Int     @default(0)
+  totalSteps            Int     @default(5)
+  completionPercentage  Float   @default(0.0)
+  
+  // Datos de personalización
+  detectedPreferences   Json? // Preferencias detectadas automáticamente
+  initialStyleGoals     String[] // Objetivos iniciales de estilo
+  onboardingPath        String @default("standard") // "standard", "quick", "detailed"
+  
+  // Timing
+  startedAt             DateTime @default(now())
+  completedAt           DateTime?
+  lastStepCompletedAt   DateTime?
+  timeToComplete        Int? // Minutos para completar onboarding
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("user_onboarding")
+}
+
+// Features y límites por tier de suscripción
+model SubscriptionFeatures {
+  id   String           @id @default(cuid())
+  tier SubscriptionTier @unique
+  
+  // Límites de análisis
+  monthlyAnalysisLimit    Int
+  dailyAnalysisLimit      Int @default(3)
+  
+  // Features disponibles
+  advancedRecommendations Boolean @default(false)
+  personalizedTips        Boolean @default(false)
+  exportResults           Boolean @default(false)
+  prioritySupport         Boolean @default(false)
+  customReports          Boolean @default(false)
+  
+  // Features de IA
+  detailedAiAnalysis     Boolean @default(false)
+  multiplePhotoAnalysis  Boolean @default(false)
+  videoAnalysis          Boolean @default(false)
+  realTimeConsultation   Boolean @default(false)
+  
+  // Features sociales
+  publicProfile          Boolean @default(false)
+  shareResults           Boolean @default(false)
+  followUsers            Boolean @default(false)
+  
+  // Almacenamiento
+  historyRetentionDays   Int @default(30)
+  maxStoredAnalyses      Int @default(10)
+  
+  // Soporte y consultoría
+  liveChatSupport        Boolean @default(false)
+  phoneSupport           Boolean @default(false)
+  personalStylistAccess  Boolean @default(false)
+  
+  // Precio (para referencia)
+  monthlyPrice           Float @default(0.0)
+  yearlyPrice            Float @default(0.0)
+  currency               String @default("USD")
+  
+  // Metadatos
+  isActive               Boolean @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@map("subscription_features")
+}
+
+// Tracking de uso diario para rate limiting
+model DailyUsage {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Fecha del tracking
+  date   DateTime @db.Date
+  
+  // Contadores de uso
+  facialAnalysesCount    Int @default(0)
+  chromaticAnalysesCount Int @default(0)
+  totalAnalysesCount     Int @default(0)
+  
+  // Otras métricas diarias
+  sessionsCount          Int @default(0)
+  timeSpentMinutes       Int @default(0)
+  featuresUsed           String[] // Lista de features utilizadas
+  
+  // Límites aplicados
+  dailyLimitReached      Boolean @default(false)
+  limitReachedAt         DateTime?
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, date])
+  @@map("daily_usage")
+}
+
+// Configuraciones del sistema expandidas
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  
+  // Descripción de la configuración
+  description String?
+  category    String? // ai, security, features, etc.
+  
+  // Configuración específica para tipos de datos
+  dataType    String @default("string") // string, number, boolean, json
+  isPublic    Boolean @default(false) // Si se puede exponer en API pública
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("system_config")
+}
+
+// Agregar relaciones faltantes al modelo User
+// (Esto se agrega al modelo User existente)
+
