@@ -1,362 +1,523 @@
 """
-Esquemas de autenticación para Synthia Style API
-Modelos para login, registro, tokens y gestión de sesiones
+Endpoints de autenticación para Synthia Style API
+Maneja registro, login, logout y gestión de tokens
 """
 
-from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Any, Dict
 
-from pydantic import BaseModel, Field, validator, EmailStr
-from .common import BaseConfig, TimestampMixin
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.security import HTTPBearer
+
+from app.schemas.auth import (
+    UserRegister, UserLogin, Token, RefreshToken, PasswordChange,
+    PasswordReset, PasswordResetConfirm, LogoutRequest
+)
+from app.schemas.common import APIResponse
+from app.schemas.user import UserResponse
+from app.core.security import (
+    PasswordManager, TokenManager, SecurityLogger,
+    get_current_user_id
+)
+from app.db.database import get_db
+from app.core.logging import SecurityLogger
+
+router = APIRouter()
+security = HTTPBearer()
 
 
-class UserRegister(BaseModel):
-    """Schema para registro de usuario"""
-    email: EmailStr = Field(..., description="Email del usuario")
-    password: str = Field(
-        ..., 
-        min_length=8, 
-        max_length=128,
-        description="Contraseña (mínimo 8 caracteres)"
-    )
-    first_name: Optional[str] = Field(
-        None, 
-        min_length=1, 
-        max_length=50,
-        description="Nombre"
-    )
-    last_name: Optional[str] = Field(
-        None, 
-        min_length=1, 
-        max_length=50,
-        description="Apellido"
-    )
-    
-    @validator('password')
-    def validate_password(cls, v):
-        """Validar fortaleza de contraseña"""
-        if len(v) < 8:
-            raise ValueError('La contraseña debe tener al menos 8 caracteres')
+@router.post("/register", response_model=APIResponse)
+async def register_user(
+    user_data: UserRegister,
+    request: Request,
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Registrar nuevo usuario
+    """
+    try:
+        # Verificar si el email ya existe
+        existing_user = await db.user.find_unique(
+            where={"email": user_data.email}
+        )
         
-        # Verificar que contenga al menos una letra y un número
-        has_letter = any(c.isalpha() for c in v)
-        has_digit = any(c.isdigit() for c in v)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El email ya está registrado"
+            )
         
-        if not has_letter:
-            raise ValueError('La contraseña debe contener al menos una letra')
-        if not has_digit:
-            raise ValueError('La contraseña debe contener al menos un número')
+        # Hash de la contraseña
+        hashed_password = PasswordManager.hash_password(user_data.password)
         
-        return v
-    
-    @validator('email')
-    def validate_email_domain(cls, v):
-        """Validaciones adicionales de email"""
-        if len(v) > 254:
-            raise ValueError('Email demasiado largo')
+        # Crear usuario en la base de datos
+        new_user = await db.user.create(
+            data={
+                "email": user_data.email,
+                "password": hashed_password,
+                "firstName": user_data.first_name,
+                "lastName": user_data.last_name,
+                "isActive": True
+            }
+        )
         
-        # Lista de dominios temporales comunes (opcional)
-        temp_domains = [
-            '10minutemail.com', 'tempmail.org', 'guerrillamail.com'
+        # Crear preferencias por defecto
+        await db.userpreferences.create(
+            data={
+                "userId": new_user.id,
+                "emailNotifications": True,
+                "pushNotifications": True,
+                "shareAnalytics": False,
+                "profileVisibility": "private"
+            }
+        )
+        
+        # Log de registro exitoso
+        SecurityLogger.log_authentication(
+            user_id=new_user.id,
+            success=True,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent")
+        )
+        
+        return APIResponse(
+            message="Usuario registrado exitosamente",
+            data={
+                "user_id": new_user.id,
+                "email": new_user.email
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Log de error
+        SecurityLogger.log_authentication(
+            user_id=user_data.email,
+            success=False,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent")
+        )
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post("/login", response_model=Token)
+async def login_user(
+    user_data: UserLogin,
+    request: Request,
+    db=Depends(get_db)
+) -> Token:
+    """
+    Iniciar sesión de usuario
+    """
+    try:
+        # Buscar usuario por email
+        user = await db.user.find_unique(
+            where={"email": user_data.email},
+            include={"preferences": True}
+        )
+        
+        # Verificar si el usuario existe y está activo
+        if not user or not user.isActive:
+            SecurityLogger.log_authentication(
+                user_id=user_data.email,
+                success=False,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent")
+            )
+            
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales inválidas"
+            )
+        
+        # Verificar contraseña
+        if not PasswordManager.verify_password(user_data.password, user.password):
+            SecurityLogger.log_authentication(
+                user_id=user.id,
+                success=False,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent")
+            )
+            
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales inválidas"
+            )
+        
+        # Generar tokens
+        access_token = TokenManager.create_access_token(
+            data={"sub": user.id, "email": user.email}
+        )
+        refresh_token = TokenManager.create_refresh_token(user.id)
+        
+        # Crear sesión en la base de datos
+        session_data = {
+            "userId": user.id,
+            "token": refresh_token,
+            "expiresAt": datetime.utcnow() + timedelta(days=7),
+            "isActive": True,
+            "userAgent": request.headers.get("user-agent"),
+            "ipAddress": request.client.host if request.client else None
+        }
+        
+        await db.usersession.create(data=session_data)
+        
+        # Log de login exitoso
+        SecurityLogger.log_authentication(
+            user_id=user.id,
+            success=True,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent")
+        )
+        
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=1800  # 30 minutos
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(
+    refresh_data: RefreshToken,
+    db=Depends(get_db)
+) -> Token:
+    """
+    Renovar token de acceso usando refresh token
+    """
+    try:
+        # Verificar refresh token
+        payload = TokenManager.verify_token(refresh_data.refresh_token, "refresh")
+        user_id = payload.get("sub")
+        
+        # Verificar que la sesión existe y está activa
+        session = await db.usersession.find_first(
+            where={
+                "token": refresh_data.refresh_token,
+                "userId": user_id,
+                "isActive": True,
+                "expiresAt": {"gte": datetime.utcnow()}
+            }
+        )
+        
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token inválido o expirado"
+            )
+        
+        # Buscar usuario
+        user = await db.user.find_unique(
+            where={"id": user_id}
+        )
+        
+        if not user or not user.isActive:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuario inválido"
+            )
+        
+        # Generar nuevo access token
+        new_access_token = TokenManager.create_access_token(
+            data={"sub": user.id, "email": user.email}
+        )
+        
+        return Token(
+            access_token=new_access_token,
+            refresh_token=refresh_data.refresh_token,  # Mantener el mismo refresh token
+            token_type="bearer",
+            expires_in=1800
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error renovando token"
+        )
+
+
+@router.post("/logout", response_model=APIResponse)
+async def logout_user(
+    logout_data: LogoutRequest,
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Cerrar sesión de usuario
+    """
+    try:
+        if logout_data.logout_all_devices:
+            # Desactivar todas las sesiones del usuario
+            await db.usersession.update_many(
+                where={"userId": current_user_id},
+                data={"isActive": False}
+            )
+            message = "Sesión cerrada en todos los dispositivos"
+        else:
+            # Desactivar solo la sesión actual (requeriría token específico)
+            # Por simplicidad, desactivamos la más reciente
+            recent_session = await db.usersession.find_first(
+                where={"userId": current_user_id, "isActive": True},
+                order={"createdAt": "desc"}
+            )
+            
+            if recent_session:
+                await db.usersession.update(
+                    where={"id": recent_session.id},
+                    data={"isActive": False}
+                )
+            
+            message = "Sesión cerrada exitosamente"
+        
+        return APIResponse(message=message)
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error cerrando sesión"
+        )
+
+
+@router.post("/change-password", response_model=APIResponse)
+async def change_password(
+    password_data: PasswordChange,
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Cambiar contraseña del usuario autenticado
+    """
+    try:
+        # Buscar usuario actual
+        user = await db.user.find_unique(
+            where={"id": current_user_id}
+        )
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+        
+        # Verificar contraseña actual
+        if not PasswordManager.verify_password(password_data.current_password, user.password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Contraseña actual incorrecta"
+            )
+        
+        # Hash de la nueva contraseña
+        new_hashed_password = PasswordManager.hash_password(password_data.new_password)
+        
+        # Actualizar contraseña en la base de datos
+        await db.user.update(
+            where={"id": current_user_id},
+            data={"password": new_hashed_password}
+        )
+        
+        # Invalidar todas las sesiones para forzar re-login
+        await db.usersession.update_many(
+            where={"userId": current_user_id},
+            data={"isActive": False}
+        )
+        
+        return APIResponse(message="Contraseña cambiada exitosamente")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error cambiando contraseña"
+        )
+
+
+@router.post("/forgot-password", response_model=APIResponse)
+async def forgot_password(
+    reset_data: PasswordReset,
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Solicitar reset de contraseña
+    """
+    try:
+        # Verificar si el usuario existe
+        user = await db.user.find_unique(
+            where={"email": reset_data.email}
+        )
+        
+        # Por seguridad, siempre retornamos éxito aunque el email no exista
+        if user:
+            # Generar token de reset (en producción, enviar por email)
+            reset_token = TokenManager.create_access_token(
+                data={"sub": user.id, "type": "password_reset"},
+                expires_delta=timedelta(hours=1)  # Expira en 1 hora
+            )
+            
+            # TODO: Enviar email con el token de reset
+            # EmailService.send_password_reset_email(user.email, reset_token)
+        
+        return APIResponse(
+            message="Si el email existe, recibirás instrucciones para resetear tu contraseña"
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error procesando solicitud"
+        )
+
+
+@router.post("/reset-password", response_model=APIResponse)
+async def reset_password(
+    reset_data: PasswordResetConfirm,
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Confirmar reset de contraseña con token
+    """
+    try:
+        # Verificar token de reset
+        try:
+            payload = TokenManager.verify_token(reset_data.token, "access")
+            if payload.get("type") != "password_reset":
+                raise ValueError("Token inválido")
+            user_id = payload.get("sub")
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token de reset inválido o expirado"
+            )
+        
+        # Buscar usuario
+        user = await db.user.find_unique(
+            where={"id": user_id}
+        )
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+        
+        # Hash de la nueva contraseña
+        new_hashed_password = PasswordManager.hash_password(reset_data.new_password)
+        
+        # Actualizar contraseña
+        await db.user.update(
+            where={"id": user_id},
+            data={"password": new_hashed_password}
+        )
+        
+        # Invalidar todas las sesiones
+        await db.usersession.update_many(
+            where={"userId": user_id},
+            data={"isActive": False}
+        )
+        
+        return APIResponse(message="Contraseña restablecida exitosamente")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error restableciendo contraseña"
+        )
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_user(
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> UserResponse:
+    """
+    Obtener información del usuario autenticado
+    """
+    try:
+        user = await db.user.find_unique(
+            where={"id": current_user_id},
+            include={"preferences": True}
+        )
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+        
+        return UserResponse(
+            id=user.id,
+            email=user.email,
+            first_name=user.firstName,
+            last_name=user.lastName,
+            is_active=user.isActive,
+            created_at=user.createdAt,
+            updated_at=user.updatedAt,
+            preferences=user.preferences
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error obteniendo información del usuario"
+        )
+
+
+@router.get("/sessions", response_model=APIResponse)
+async def get_user_sessions(
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Obtener sesiones activas del usuario
+    """
+    try:
+        sessions = await db.usersession.find_many(
+            where={
+                "userId": current_user_id,
+                "isActive": True,
+                "expiresAt": {"gte": datetime.utcnow()}
+            },
+            order={"createdAt": "desc"}
+        )
+        
+        session_data = [
+            {
+                "id": session.id,
+                "created_at": session.createdAt,
+                "expires_at": session.expiresAt,
+                "ip_address": session.ipAddress,
+                "user_agent": session.userAgent
+            }
+            for session in sessions
         ]
         
-        domain = v.split('@')[1].lower()
-        if domain in temp_domains:
-            raise ValueError('No se permiten emails temporales')
+        return APIResponse(
+            message="Sesiones obtenidas exitosamente",
+            data={"sessions": session_data}
+        )
         
-        return v.lower()
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "email": "maria@example.com",
-                "password": "miContraseñaSegura123",
-                "first_name": "María",
-                "last_name": "García"
-            }
-        }
-
-
-class UserLogin(BaseModel):
-    """Schema para login de usuario"""
-    email: EmailStr = Field(..., description="Email del usuario")
-    password: str = Field(..., description="Contraseña")
-    remember_me: bool = Field(default=False, description="Recordar sesión")
-    
-    @validator('email')
-    def normalize_email(cls, v):
-        """Normalizar email a minúsculas"""
-        return v.lower()
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "email": "maria@example.com",
-                "password": "miContraseñaSegura123",
-                "remember_me": false
-            }
-        }
-
-
-class Token(BaseModel):
-    """Schema para token de acceso"""
-    access_token: str = Field(..., description="Token de acceso JWT")
-    refresh_token: str = Field(..., description="Token de refresh")
-    token_type: str = Field(default="bearer", description="Tipo de token")
-    expires_in: int = Field(..., description="Tiempo de expiración en segundos")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-                "refresh_token": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...",
-                "token_type": "bearer",
-                "expires_in": 1800
-            }
-        }
-
-
-class TokenData(BaseModel):
-    """Schema para datos del token decodificado"""
-    user_id: str = Field(..., description="ID del usuario")
-    email: Optional[str] = Field(None, description="Email del usuario")
-    token_type: str = Field(default="access", description="Tipo de token")
-    expires_at: datetime = Field(..., description="Fecha de expiración")
-    issued_at: datetime = Field(..., description="Fecha de emisión")
-    
-    class Config(BaseConfig):
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
-
-class RefreshToken(BaseModel):
-    """Schema para refresh de token"""
-    refresh_token: str = Field(..., description="Token de refresh")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "refresh_token": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
-            }
-        }
-
-
-class PasswordReset(BaseModel):
-    """Schema para solicitud de reset de contraseña"""
-    email: EmailStr = Field(..., description="Email del usuario")
-    
-    @validator('email')
-    def normalize_email(cls, v):
-        return v.lower()
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "email": "maria@example.com"
-            }
-        }
-
-
-class PasswordResetConfirm(BaseModel):
-    """Schema para confirmación de reset de contraseña"""
-    token: str = Field(..., description="Token de reset")
-    new_password: str = Field(
-        ..., 
-        min_length=8, 
-        max_length=128,
-        description="Nueva contraseña"
-    )
-    
-    @validator('new_password')
-    def validate_password(cls, v):
-        """Validar nueva contraseña"""
-        if len(v) < 8:
-            raise ValueError('La contraseña debe tener al menos 8 caracteres')
-        
-        has_letter = any(c.isalpha() for c in v)
-        has_digit = any(c.isdigit() for c in v)
-        
-        if not has_letter:
-            raise ValueError('La contraseña debe contener al menos una letra')
-        if not has_digit:
-            raise ValueError('La contraseña debe contener al menos un número')
-        
-        return v
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "token": "reset-token-here",
-                "new_password": "miNuevaContraseñaSegura123"
-            }
-        }
-
-
-class PasswordChange(BaseModel):
-    """Schema para cambio de contraseña"""
-    current_password: str = Field(..., description="Contraseña actual")
-    new_password: str = Field(
-        ..., 
-        min_length=8, 
-        max_length=128,
-        description="Nueva contraseña"
-    )
-    
-    @validator('new_password')
-    def validate_new_password(cls, v, values):
-        """Validar nueva contraseña"""
-        if 'current_password' in values and v == values['current_password']:
-            raise ValueError('La nueva contraseña debe ser diferente a la actual')
-        
-        if len(v) < 8:
-            raise ValueError('La contraseña debe tener al menos 8 caracteres')
-        
-        has_letter = any(c.isalpha() for c in v)
-        has_digit = any(c.isdigit() for c in v)
-        
-        if not has_letter:
-            raise ValueError('La contraseña debe contener al menos una letra')
-        if not has_digit:
-            raise ValueError('La contraseña debe contener al menos un número')
-        
-        return v
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "current_password": "miContraseñaActual123",
-                "new_password": "miNuevaContraseñaSegura456"
-            }
-        }
-
-
-class SessionInfo(BaseModel, TimestampMixin):
-    """Schema para información de sesión"""
-    session_id: str = Field(..., description="ID de la sesión")
-    user_id: str = Field(..., description="ID del usuario")
-    ip_address: Optional[str] = Field(None, description="Dirección IP")
-    user_agent: Optional[str] = Field(None, description="User Agent")
-    is_active: bool = Field(default=True, description="Sesión activa")
-    expires_at: datetime = Field(..., description="Fecha de expiración")
-    last_activity: Optional[datetime] = Field(None, description="Última actividad")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "session_id": "sess_123456789",
-                "user_id": "user_abcdef123",
-                "ip_address": "192.168.1.100",
-                "user_agent": "Mozilla/5.0...",
-                "is_active": True,
-                "expires_at": "2024-01-01T12:00:00Z",
-                "last_activity": "2024-01-01T11:30:00Z"
-            }
-        }
-
-
-class LogoutRequest(BaseModel):
-    """Schema para logout"""
-    logout_all_devices: bool = Field(
-        default=False, 
-        description="Cerrar sesión en todos los dispositivos"
-    )
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "logout_all_devices": False
-            }
-        }
-
-
-class LoginHistory(BaseModel, TimestampMixin):
-    """Schema para historial de login"""
-    user_id: str = Field(..., description="ID del usuario")
-    ip_address: Optional[str] = Field(None, description="Dirección IP")
-    user_agent: Optional[str] = Field(None, description="User Agent")
-    success: bool = Field(..., description="Login exitoso")
-    failure_reason: Optional[str] = Field(None, description="Razón de falla")
-    location: Optional[str] = Field(None, description="Ubicación aproximada")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "user_id": "user_abcdef123",
-                "ip_address": "192.168.1.100",
-                "user_agent": "Mozilla/5.0...",
-                "success": True,
-                "failure_reason": None,
-                "location": "Lima, Peru"
-            }
-        }
-
-
-class TwoFactorSetup(BaseModel):
-    """Schema para configuración de 2FA"""
-    enable: bool = Field(..., description="Habilitar/deshabilitar 2FA")
-    method: str = Field(
-        default="totp", 
-        regex="^(totp|sms|email)$",
-        description="Método de 2FA"
-    )
-    phone: Optional[str] = Field(None, description="Teléfono para SMS")
-    backup_codes: Optional[list] = Field(None, description="Códigos de respaldo")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "enable": True,
-                "method": "totp",
-                "phone": "+51987654321",
-                "backup_codes": ["123456", "789012", "345678"]
-            }
-        }
-
-
-class TwoFactorVerify(BaseModel):
-    """Schema para verificación de 2FA"""
-    code: str = Field(
-        ..., 
-        min_length=6, 
-        max_length=8,
-        description="Código de verificación"
-    )
-    remember_device: bool = Field(
-        default=False,
-        description="Recordar este dispositivo"
-    )
-    
-    @validator('code')
-    def validate_code(cls, v):
-        """Validar código de verificación"""
-        if not v.isdigit():
-            raise ValueError('El código debe contener solo números')
-        return v
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "code": "123456",
-                "remember_device": False
-            }
-        }
-
-
-class AuthChallenge(BaseModel):
-    """Schema para desafío de autenticación"""
-    challenge_type: str = Field(..., description="Tipo de desafío")
-    challenge_data: dict = Field(..., description="Datos del desafío")
-    expires_in: int = Field(..., description="Expiración en segundos")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "challenge_type": "2fa_required",
-                "challenge_data": {
-                    "methods": ["totp", "backup_code"],
-                    "qr_code": "data:image/png;base64,..."
-                },
-                "expires_in": 300
-            }
-        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error obteniendo sesiones"
+        )

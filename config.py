@@ -7,7 +7,7 @@ import os
 from typing import List, Optional, Union
 from functools import lru_cache
 
-from pydantic import BaseSettings, validator
+from pydantic import validator
 from pydantic_settings import BaseSettings
 
 
@@ -40,6 +40,56 @@ class Settings(BaseSettings):
     
     # APIs externas
     GEMINI_API_KEY: str
+    
+    # Configuración de Merchants y Afiliados
+    # Amazon Associates API
+    AMAZON_AFFILIATE_TAG: Optional[str] = None
+    AMAZON_ACCESS_KEY: Optional[str] = None
+    AMAZON_SECRET_KEY: Optional[str] = None
+    
+    # ASOS Affiliate API
+    ASOS_AFFILIATE_TAG: Optional[str] = None
+    ASOS_API_KEY: Optional[str] = None
+    
+    # Zara Affiliate
+    ZARA_AFFILIATE_TAG: Optional[str] = None
+    
+    # H&M Affiliate
+    HM_AFFILIATE_TAG: Optional[str] = None
+    
+    # Uniqlo Affiliate
+    UNIQLO_AFFILIATE_TAG: Optional[str] = None
+    
+    # Mango Affiliate
+    MANGO_AFFILIATE_TAG: Optional[str] = None
+    
+    # Shein Affiliate
+    SHEIN_AFFILIATE_TAG: Optional[str] = None
+    
+    # Zalando Affiliate
+    ZALANDO_AFFILIATE_TAG: Optional[str] = None
+    
+    # Configuración de Shopping
+    SHOPPING_ENABLED: bool = True
+    SHOPPING_CACHE_TTL: int = 3600  # 1 hora
+    SHOPPING_MAX_RESULTS_PER_MERCHANT: int = 20
+    SHOPPING_CONCURRENT_REQUESTS: int = 5
+    SHOPPING_REQUEST_TIMEOUT: int = 30  # segundos
+    
+    # Configuración de Rate Limiting para Merchants
+    MERCHANT_RATE_LIMIT_REQUESTS_PER_MINUTE: int = 30
+    MERCHANT_RATE_LIMIT_REQUESTS_PER_DAY: int = 5000
+    
+    # Configuración de Afiliados
+    AFFILIATE_COMMISSION_DEFAULT_RATE: float = 0.05  # 5%
+    AFFILIATE_COOKIE_DURATION_DAYS: int = 30
+    AFFILIATE_MINIMUM_PAYOUT: float = 25.00
+    AFFILIATE_PAYMENT_SCHEDULE: str = "monthly"  # weekly, monthly, quarterly
+    
+    # Configuración de Tracking
+    TRACKING_ENABLED: bool = True
+    TRACKING_ANONYMIZE_IP: bool = True
+    TRACKING_RETENTION_DAYS: int = 365
     
     # Configuración de archivos
     UPLOAD_DIR: str = "uploads"

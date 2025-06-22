@@ -1,387 +1,385 @@
 """
-Esquemas para análisis facial en Synthia Style API
-Modelos para análisis de rostro y recomendaciones de estilo
+Endpoints de análisis facial para Synthia Style API
+Maneja análisis de rostro y recomendaciones de estilo con sistema de suscripciones
 """
 
-from typing import Optional, List, Dict, Any
+from typing import List, Optional
 from datetime import datetime
-from enum import Enum
 
-from pydantic import BaseModel, Field, validator
-from .common import BaseConfig, TimestampMixin, MetadataMixin, ImageMetadata
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import JSONResponse
 
+from app.schemas.facial_analysis import (
+    FacialAnalysisRequest, FacialAnalysisResponse, FacialAnalysisResult,
+    FacialAnalysisHistory, FacialAnalysisFilter, FaceShapeEnum
+)
+from app.schemas.common import APIResponse, PaginationParams, PaginatedResponse
+from app.core.security import get_current_user_id
+from app.db.database import get_db
+from app.services.gemini_service import gemini_service
+from app.services.file_service import file_service
+from app.services.user_service import subscription_service, user_onboarding_service
 
-class FaceShapeEnum(str, Enum):
-    """Formas de rostro posibles"""
-    OVALADO = "ovalado"
-    REDONDO = "redondo"
-    CUADRADO = "cuadrado"
-    RECTANGULAR = "rectangular"
-    CORAZÓN = "corazón"
-    DIAMANTE = "diamante"
-    TRIANGULAR = "triangular"
-    UNKNOWN = "unknown"
-
-
-class RecommendationCategory(str, Enum):
-    """Categorías de recomendaciones"""
-    CORTES_PELO = "cortes_pelo"
-    GAFAS = "gafas"
-    ESCOTES = "escotes"
-    ACCESORIOS = "accesorios"
-    MAQUILLAJE = "maquillaje"
+router = APIRouter()
 
 
-class FacialAnalysisRequest(BaseModel):
-    """Schema para solicitud de análisis facial"""
-    image_data: str = Field(..., description="Imagen en base64")
-    image_filename: str = Field(..., description="Nombre del archivo")
-    analysis_preferences: Optional[Dict[str, Any]] = Field(
-        None, 
-        description="Preferencias específicas para el análisis"
-    )
-    
-    @validator('image_data')
-    def validate_image_data(cls, v):
-        """Validar datos de imagen base64"""
-        if not v or len(v.strip()) == 0:
-            raise ValueError('Los datos de imagen son requeridos')
+@router.post("/analyze", response_model=FacialAnalysisResponse)
+async def analyze_facial_features(
+    analysis_request: FacialAnalysisRequest,
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> FacialAnalysisResponse:
+    """
+    Realizar análisis facial con IA - Incluye verificación de límites de suscripción
+    """
+    try:
+        # Verificar límites de uso antes del análisis
+        usage_limits = await subscription_service.check_usage_limits(current_user_id)
         
-        # Verificar que sea base64 válido básicamente
-        import base64
-        try:
-            base64.b64decode(v, validate=True)
-        except Exception:
-            raise ValueError('Datos de imagen base64 inválidos')
-        
-        return v
-    
-    @validator('image_filename')
-    def validate_filename(cls, v):
-        """Validar nombre de archivo"""
-        if not v or len(v.strip()) == 0:
-            raise ValueError('El nombre del archivo es requerido')
-        
-        # Verificar extensión
-        allowed_extensions = ['jpg', 'jpeg', 'png', 'webp']
-        extension = v.lower().split('.')[-1] if '.' in v else ''
-        
-        if extension not in allowed_extensions:
-            raise ValueError(f'Extensión no permitida. Permitidas: {allowed_extensions}')
-        
-        return v
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "image_data": "/9j/4AAQSkZJRgABAQEAAA...",
-                "image_filename": "mi_foto.jpg",
-                "analysis_preferences": {
-                    "include_confidence": True,
-                    "detailed_features": True
+        if not usage_limits.can_analyze:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "message": "Has alcanzado tu límite de análisis",
+                    "daily_limit": usage_limits.daily_analyses_limit,
+                    "monthly_limit": usage_limits.monthly_analyses_limit,
+                    "time_until_reset": usage_limits.time_until_reset,
+                    "current_tier": usage_limits.current_tier.value
                 }
-            }
+            )
+        
+        start_time = datetime.utcnow()
+        
+        # Realizar análisis con Gemini AI
+        ai_result = await gemini_service.analyze_facial_features(
+            image_data=analysis_request.image_data,
+            user_id=current_user_id,
+            preferences=analysis_request.analysis_preferences
+        )
+        
+        # Guardar imagen (opcional - convertir base64 a archivo)
+        # Por ahora, generamos una URL ficticia
+        image_url = f"/uploads/facial/{current_user_id}_{int(datetime.utcnow().timestamp())}.jpg"
+        
+        # Crear registro en la base de datos
+        analysis_data = {
+            "userId": current_user_id,
+            "imageUrl": image_url,
+            "faceShape": ai_result["forma_rostro"].value,
+            "featuresHighlighted": ai_result.get("caracteristicas_destacadas", []),
+            "confidenceLevel": ai_result.get("confianza_analisis", 85),
+            "analysisData": ai_result
         }
-
-
-class FacialFeature(BaseModel):
-    """Schema para característica facial específica"""
-    name: str = Field(..., description="Nombre de la característica")
-    description: str = Field(..., description="Descripción de la característica")
-    prominence: float = Field(
-        ..., 
-        ge=0.0, 
-        le=1.0, 
-        description="Prominencia de la característica (0-1)"
-    )
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "name": "pómulos",
-                "description": "Pómulos definidos y prominentes",
-                "prominence": 0.8
-            }
-        }
-
-
-class FacialRecommendation(BaseModel):
-    """Schema para recomendación de estilo facial"""
-    category: RecommendationCategory = Field(..., description="Categoría de la recomendación")
-    name: str = Field(..., description="Nombre de la recomendación")
-    description: str = Field(..., description="Descripción breve")
-    explanation: str = Field(..., description="Explicación detallada")
-    priority: int = Field(default=1, ge=1, le=5, description="Prioridad (1-5)")
-    confidence: float = Field(
-        default=0.8, 
-        ge=0.0, 
-        le=1.0, 
-        description="Confianza en la recomendación"
-    )
-    tags: List[str] = Field(default=[], description="Etiquetas adicionales")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Metadatos adicionales")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "category": "cortes_pelo",
-                "name": "Bob clásico",
-                "description": "Corte recto a la altura de la mandíbula",
-                "explanation": "Enmarca el rostro resaltando los pómulos sin modificar las proporciones naturales",
-                "priority": 1,
-                "confidence": 0.9,
-                "tags": ["elegante", "versátil", "clásico"],
-                "metadata": {
-                    "difficulty": "easy",
-                    "maintenance": "medium"
-                }
-            }
-        }
-
-
-class FacialAnalysisResult(BaseModel, TimestampMixin):
-    """Schema para resultado de análisis facial"""
-    id: str = Field(..., description="ID único del análisis")
-    user_id: str = Field(..., description="ID del usuario")
-    
-    # Imagen analizada
-    image_url: str = Field(..., description="URL de la imagen")
-    image_metadata: Optional[ImageMetadata] = Field(None, description="Metadatos de la imagen")
-    
-    # Resultados del análisis
-    face_shape: FaceShapeEnum = Field(..., description="Forma del rostro detectada")
-    features_highlighted: List[FacialFeature] = Field(
-        default=[], 
-        description="Características faciales destacadas"
-    )
-    confidence_level: int = Field(
-        ..., 
-        ge=1, 
-        le=100, 
-        description="Nivel de confianza del análisis"
-    )
-    
-    # Proporciones faciales
-    facial_proportions: Optional[Dict[str, float]] = Field(
-        None, 
-        description="Proporciones faciales medidas"
-    )
-    
-    # Análisis detallado de IA
-    ai_analysis_data: Optional[Dict[str, Any]] = Field(
-        None, 
-        description="Datos completos del análisis de IA"
-    )
-    
-    # Recomendaciones
-    recommendations: List[FacialRecommendation] = Field(
-        default=[], 
-        description="Recomendaciones de estilo"
-    )
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "id": "analysis_123456789",
-                "user_id": "user_123456789",
-                "image_url": "/uploads/facial/image_123.jpg",
-                "face_shape": "ovalado",
-                "features_highlighted": [
-                    {
-                        "name": "pómulos",
-                        "description": "Pómulos definidos",
-                        "prominence": 0.8
+        
+        facial_analysis = await db.facialanalysis.create(data=analysis_data)
+        
+        # Incrementar contadores de uso
+        await subscription_service.increment_usage(current_user_id, "facial")
+        
+        # Verificar si es su primer análisis para onboarding
+        user = await db.user.find_unique(where={"id": current_user_id})
+        if user and not user.onboardingCompleted:
+            await user_onboarding_service.complete_onboarding_step(current_user_id, 4)
+        
+        # Crear recomendaciones
+        recommendations_data = []
+        ai_recommendations = ai_result.get("recomendaciones", {})
+        
+        for category, items in ai_recommendations.items():
+            if isinstance(items, list):
+                for item in items:
+                    rec_data = {
+                        "facialAnalysisId": facial_analysis.id,
+                        "category": category,
+                        "name": item.get("nombre", item.get("tipo", "Recomendación")),
+                        "description": item.get("descripcion", ""),
+                        "explanation": item.get("explicacion", ""),
+                        "priority": 1,
+                        "score": 0.9
                     }
-                ],
-                "confidence_level": 85,
-                "facial_proportions": {
-                    "width_to_height_ratio": 0.75,
-                    "forehead_to_face_ratio": 0.33
-                },
-                "recommendations": [
-                    {
-                        "category": "cortes_pelo",
-                        "name": "Bob clásico",
-                        "description": "Corte recto a la altura de la mandíbula",
-                        "explanation": "Enmarca el rostro perfectamente"
-                    }
-                ]
-            }
-        }
+                    recommendations_data.append(rec_data)
+        
+        # Guardar recomendaciones en lote
+        if recommendations_data:
+            await db.facialrecommendation.create_many(data=recommendations_data)
+        
+        # Calcular tiempo de procesamiento
+        end_time = datetime.utcnow()
+        processing_time = (end_time - start_time).total_seconds() * 1000
+        
+        # Construir respuesta
+        analysis_result = FacialAnalysisResult(
+            id=facial_analysis.id,
+            user_id=current_user_id,
+            image_url=image_url,
+            face_shape=FaceShapeEnum(ai_result["forma_rostro"]),
+            features_highlighted=[
+                {"name": feature, "description": feature, "prominence": 0.8}
+                for feature in ai_result.get("caracteristicas_destacadas", [])
+            ],
+            confidence_level=ai_result.get("confianza_analisis", 85),
+            ai_analysis_data=ai_result,
+            recommendations=[],  # Se poblarán en una consulta separada si es necesario
+            created_at=facial_analysis.createdAt,
+            updated_at=facial_analysis.updatedAt
+        )
+        
+        return FacialAnalysisResponse(
+            analysis=analysis_result,
+            processing_time_ms=processing_time
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error realizando análisis facial: {str(e)}"
+        )
 
 
-class FacialAnalysisResponse(BaseModel):
-    """Schema para respuesta de análisis facial"""
-    status: str = Field(default="success", description="Estado del análisis")
-    message: str = Field(default="Análisis completado exitosamente")
-    analysis: FacialAnalysisResult = Field(..., description="Resultado del análisis")
-    processing_time_ms: Optional[float] = Field(None, description="Tiempo de procesamiento")
-    
-    class Config(BaseConfig):
-        pass
+@router.get("/history", response_model=PaginatedResponse[FacialAnalysisResult])
+async def get_facial_analysis_history(
+    pagination: PaginationParams = Depends(),
+    face_shapes: Optional[List[FaceShapeEnum]] = Query(None),
+    min_confidence: Optional[int] = Query(None, ge=1, le=100),
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+):
+    """
+    Obtener historial de análisis faciales del usuario
+    """
+    try:
+        # Construir filtros
+        where_conditions = {"userId": current_user_id}
+        
+        if face_shapes:
+            where_conditions["faceShape"] = {"in": [shape.value for shape in face_shapes]}
+        
+        if min_confidence:
+            where_conditions["confidenceLevel"] = {"gte": min_confidence}
+        
+        # Contar total
+        total = await db.facialanalysis.count(where=where_conditions)
+        
+        # Obtener análisis paginados
+        analyses = await db.facialanalysis.find_many(
+            where=where_conditions,
+            include={"recommendations": True},
+            order={"createdAt": "desc"},
+            skip=pagination.offset,
+            take=pagination.limit
+        )
+        
+        # Convertir a schema
+        analysis_results = []
+        for analysis in analyses:
+            result = FacialAnalysisResult(
+                id=analysis.id,
+                user_id=analysis.userId,
+                image_url=analysis.imageUrl,
+                face_shape=FaceShapeEnum(analysis.faceShape),
+                features_highlighted=analysis.featuresHighlighted or [],
+                confidence_level=analysis.confidenceLevel,
+                ai_analysis_data=analysis.analysisData,
+                recommendations=[],  # Simplificado por ahora
+                created_at=analysis.createdAt,
+                updated_at=analysis.updatedAt
+            )
+            analysis_results.append(result)
+        
+        # Crear metadatos de paginación
+        from app.schemas.common import PaginationMeta
+        meta = PaginationMeta.create(
+            page=pagination.page,
+            limit=pagination.limit,
+            total=total
+        )
+        
+        return PaginatedResponse(
+            data=analysis_results,
+            meta=meta
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo historial: {str(e)}"
+        )
 
 
-class FacialAnalysisHistory(BaseModel):
-    """Schema para historial de análisis facial"""
-    analyses: List[FacialAnalysisResult] = Field(..., description="Lista de análisis")
-    total_count: int = Field(..., description="Total de análisis")
-    date_range: Dict[str, datetime] = Field(..., description="Rango de fechas")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "analyses": [],
-                "total_count": 5,
-                "date_range": {
-                    "from": "2024-01-01T00:00:00Z",
-                    "to": "2024-01-31T23:59:59Z"
+@router.get("/{analysis_id}", response_model=FacialAnalysisResult)
+async def get_facial_analysis(
+    analysis_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> FacialAnalysisResult:
+    """
+    Obtener análisis facial específico
+    """
+    try:
+        analysis = await db.facialanalysis.find_unique(
+            where={"id": analysis_id},
+            include={"recommendations": True}
+        )
+        
+        if not analysis:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Análisis no encontrado"
+            )
+        
+        # Verificar que pertenece al usuario
+        if analysis.userId != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos para ver este análisis"
+            )
+        
+        # Convertir recomendaciones
+        from app.schemas.facial_analysis import FacialRecommendation, RecommendationCategory
+        recommendations = []
+        for rec in analysis.recommendations or []:
+            recommendation = FacialRecommendation(
+                category=RecommendationCategory(rec.category),
+                name=rec.name,
+                description=rec.description,
+                explanation=rec.explanation,
+                priority=rec.priority or 1,
+                confidence=rec.score or 0.8
+            )
+            recommendations.append(recommendation)
+        
+        return FacialAnalysisResult(
+            id=analysis.id,
+            user_id=analysis.userId,
+            image_url=analysis.imageUrl,
+            face_shape=FaceShapeEnum(analysis.faceShape),
+            features_highlighted=analysis.featuresHighlighted or [],
+            confidence_level=analysis.confidenceLevel,
+            ai_analysis_data=analysis.analysisData,
+            recommendations=recommendations,
+            created_at=analysis.createdAt,
+            updated_at=analysis.updatedAt
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo análisis: {str(e)}"
+        )
+
+
+@router.delete("/{analysis_id}", response_model=APIResponse)
+async def delete_facial_analysis(
+    analysis_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Eliminar análisis facial
+    """
+    try:
+        # Verificar que el análisis existe y pertenece al usuario
+        analysis = await db.facialanalysis.find_unique(
+            where={"id": analysis_id}
+        )
+        
+        if not analysis:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Análisis no encontrado"
+            )
+        
+        if analysis.userId != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos para eliminar este análisis"
+            )
+        
+        # Eliminar recomendaciones asociadas
+        await db.facialrecommendation.delete_many(
+            where={"facialAnalysisId": analysis_id}
+        )
+        
+        # Eliminar análisis
+        await db.facialanalysis.delete(
+            where={"id": analysis_id}
+        )
+        
+        # Eliminar archivo de imagen si existe
+        if analysis.imageUrl:
+            try:
+                await file_service.delete_file(analysis.imageUrl, current_user_id)
+            except:
+                pass  # No fallar si no se puede eliminar el archivo
+        
+        return APIResponse(message="Análisis eliminado exitosamente")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error eliminando análisis: {str(e)}"
+        )
+
+
+@router.get("/stats/summary", response_model=APIResponse)
+async def get_facial_analysis_stats(
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Obtener estadísticas de análisis facial del usuario
+    """
+    try:
+        # Contar análisis por forma de rostro
+        analyses = await db.facialanalysis.find_many(
+            where={"userId": current_user_id}
+        )
+        
+        # Calcular estadísticas
+        total_analyses = len(analyses)
+        
+        if total_analyses == 0:
+            return APIResponse(
+                message="No hay análisis disponibles",
+                data={
+                    "total_analyses": 0,
+                    "shape_distribution": {},
+                    "average_confidence": 0,
+                    "most_common_shape": None
                 }
+            )
+        
+        # Distribución por forma
+        shape_distribution = {}
+        total_confidence = 0
+        
+        for analysis in analyses:
+            shape = analysis.faceShape
+            shape_distribution[shape] = shape_distribution.get(shape, 0) + 1
+            total_confidence += analysis.confidenceLevel
+        
+        # Forma más común
+        most_common_shape = max(shape_distribution, key=shape_distribution.get)
+        average_confidence = total_confidence / total_analyses
+        
+        return APIResponse(
+            message="Estadísticas obtenidas exitosamente",
+            data={
+                "total_analyses": total_analyses,
+                "shape_distribution": shape_distribution,
+                "average_confidence": round(average_confidence, 1),
+                "most_common_shape": most_common_shape
             }
-        }
-
-
-class FacialAnalysisComparison(BaseModel):
-    """Schema para comparación de análisis faciales"""
-    analysis_1: FacialAnalysisResult = Field(..., description="Primer análisis")
-    analysis_2: FacialAnalysisResult = Field(..., description="Segundo análisis")
-    differences: Dict[str, Any] = Field(..., description="Diferencias encontradas")
-    similarity_score: float = Field(
-        ..., 
-        ge=0.0, 
-        le=1.0, 
-        description="Puntuación de similitud"
-    )
-    
-    class Config(BaseConfig):
-        pass
-
-
-class FacialAnalysisStats(BaseModel):
-    """Schema para estadísticas de análisis facial"""
-    total_analyses: int = Field(..., description="Total de análisis realizados")
-    most_common_face_shape: FaceShapeEnum = Field(..., description="Forma de rostro más común")
-    average_confidence: float = Field(..., description="Confianza promedio")
-    shape_distribution: Dict[FaceShapeEnum, int] = Field(
-        ..., 
-        description="Distribución de formas de rostro"
-    )
-    monthly_analysis_count: Dict[str, int] = Field(
-        ..., 
-        description="Conteo mensual de análisis"
-    )
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "total_analyses": 1000,
-                "most_common_face_shape": "ovalado",
-                "average_confidence": 82.5,
-                "shape_distribution": {
-                    "ovalado": 300,
-                    "redondo": 250,
-                    "cuadrado": 200,
-                    "corazón": 150,
-                    "rectangular": 100
-                },
-                "monthly_analysis_count": {
-                    "2024-01": 100,
-                    "2024-02": 120,
-                    "2024-03": 150
-                }
-            }
-        }
-
-
-class RecommendationFeedback(BaseModel, TimestampMixin):
-    """Schema para feedback de recomendaciones"""
-    analysis_id: str = Field(..., description="ID del análisis")
-    recommendation_category: RecommendationCategory = Field(
-        ..., 
-        description="Categoría de la recomendación"
-    )
-    recommendation_name: str = Field(..., description="Nombre de la recomendación")
-    
-    # Feedback
-    rating: int = Field(..., ge=1, le=5, description="Calificación (1-5 estrellas)")
-    helpful: bool = Field(..., description="¿Fue útil la recomendación?")
-    tried: bool = Field(default=False, description="¿Probó la recomendación?")
-    comments: Optional[str] = Field(None, description="Comentarios adicionales")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "analysis_id": "analysis_123456789",
-                "recommendation_category": "cortes_pelo",
-                "recommendation_name": "Bob clásico",
-                "rating": 5,
-                "helpful": True,
-                "tried": True,
-                "comments": "¡Me encantó el resultado! Muy recomendado."
-            }
-        }
-
-
-class FacialAnalysisFilter(BaseModel):
-    """Schema para filtros de análisis facial"""
-    face_shapes: Optional[List[FaceShapeEnum]] = Field(None, description="Filtrar por formas")
-    date_from: Optional[datetime] = Field(None, description="Fecha desde")
-    date_to: Optional[datetime] = Field(None, description="Fecha hasta")
-    min_confidence: Optional[int] = Field(None, ge=1, le=100, description="Confianza mínima")
-    has_recommendations: Optional[bool] = Field(None, description="Tiene recomendaciones")
-    
-    @validator('date_to')
-    def validate_date_range(cls, v, values):
-        if v and 'date_from' in values and values['date_from']:
-            if v < values['date_from']:
-                raise ValueError('date_to debe ser posterior a date_from')
-        return v
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "face_shapes": ["ovalado", "redondo"],
-                "date_from": "2024-01-01T00:00:00Z",
-                "date_to": "2024-01-31T23:59:59Z",
-                "min_confidence": 80,
-                "has_recommendations": True
-            }
-        }
-
-
-class BulkFacialAnalysis(BaseModel):
-    """Schema para análisis facial en lote"""
-    images: List[Dict[str, str]] = Field(
-        ..., 
-        description="Lista de imágenes con data y filename"
-    )
-    analysis_preferences: Optional[Dict[str, Any]] = Field(
-        None, 
-        description="Preferencias para todos los análisis"
-    )
-    
-    @validator('images')
-    def validate_images_count(cls, v):
-        if len(v) == 0:
-            raise ValueError('Debe proporcionar al menos una imagen')
-        if len(v) > 10:
-            raise ValueError('Máximo 10 imágenes por lote')
-        return v
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "images": [
-                    {
-                        "image_data": "/9j/4AAQSkZJRgABAQEAAA...",
-                        "image_filename": "foto1.jpg"
-                    },
-                    {
-                        "image_data": "/9j/4AAQSkZJRgABAQEAAB...",
-                        "image_filename": "foto2.jpg"
-                    }
-                ],
-                "analysis_preferences": {
-                    "include_confidence": True
-                }
-            }
-        }
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo estadísticas: {str(e)}"
+        )

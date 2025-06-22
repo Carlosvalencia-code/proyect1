@@ -1,408 +1,378 @@
 """
-Esquemas para feedback en Synthia Style API
-Modelos para comentarios, valoraciones y sugerencias de usuarios
+Endpoints de feedback para Synthia Style API
+Maneja comentarios, valoraciones y sugerencias de usuarios
 """
 
-from typing import Optional, List, Dict, Any
+from typing import List, Optional
 from datetime import datetime
-from enum import Enum
 
-from pydantic import BaseModel, Field, validator
-from .common import BaseConfig, TimestampMixin, MetadataMixin
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 
+from app.schemas.feedback import (
+    FeedbackCreate, FeedbackResponse, FeedbackUpdate, FeedbackFilter,
+    FeedbackCategory, FeedbackStatus
+)
+from app.schemas.common import APIResponse, PaginationParams, PaginatedResponse
+from app.core.security import get_current_user_id
+from app.db.database import get_db
 
-class FeedbackCategory(str, Enum):
-    """Categorías de feedback"""
-    FACIAL_ANALYSIS = "facial_analysis"
-    CHROMATIC_ANALYSIS = "chromatic_analysis"
-    RECOMMENDATIONS = "recommendations"
-    USER_EXPERIENCE = "user_experience"
-    TECHNICAL_ISSUE = "technical_issue"
-    FEATURE_REQUEST = "feature_request"
-    GENERAL = "general"
-    BUG_REPORT = "bug_report"
+router = APIRouter()
 
 
-class FeedbackStatus(str, Enum):
-    """Estados del feedback"""
-    PENDING = "pending"
-    REVIEWED = "reviewed"
-    IN_PROGRESS = "in_progress"
-    RESOLVED = "resolved"
-    CLOSED = "closed"
-    REJECTED = "rejected"
+@router.post("/", response_model=FeedbackResponse)
+async def create_feedback(
+    feedback_data: FeedbackCreate,
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> FeedbackResponse:
+    """
+    Crear nuevo feedback
+    """
+    try:
+        # Preparar datos para la base de datos
+        create_data = {
+            "userId": current_user_id,
+            "category": feedback_data.category.value,
+            "content": feedback_data.content,
+            "status": FeedbackStatus.PENDING.value
+        }
+        
+        # Campos opcionales
+        if feedback_data.rating:
+            create_data["rating"] = feedback_data.rating
+        
+        # Crear contexto adicional si se proporciona
+        context_data = {}
+        if feedback_data.related_analysis_id:
+            context_data["related_analysis_id"] = feedback_data.related_analysis_id
+        if feedback_data.related_recommendation_id:
+            context_data["related_recommendation_id"] = feedback_data.related_recommendation_id
+        if feedback_data.user_agent:
+            context_data["user_agent"] = feedback_data.user_agent
+        if feedback_data.page_url:
+            context_data["page_url"] = feedback_data.page_url
+        if feedback_data.context_data:
+            context_data.update(feedback_data.context_data)
+        
+        if context_data:
+            create_data["contextData"] = context_data
+        
+        # Crear feedback en la base de datos
+        feedback = await db.feedback.create(data=create_data)
+        
+        return FeedbackResponse(
+            id=feedback.id,
+            user_id=feedback.userId,
+            category=FeedbackCategory(feedback.category),
+            title=feedback_data.title,
+            content=feedback.content,
+            rating=feedback.rating,
+            status=FeedbackStatus(feedback.status),
+            context_data=feedback.contextData,
+            created_at=feedback.createdAt,
+            updated_at=feedback.updatedAt
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creando feedback: {str(e)}"
+        )
 
 
-class FeedbackPriority(str, Enum):
-    """Prioridades del feedback"""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+@router.get("/", response_model=PaginatedResponse[FeedbackResponse])
+async def get_user_feedback(
+    pagination: PaginationParams = Depends(),
+    categories: Optional[List[FeedbackCategory]] = Query(None),
+    statuses: Optional[List[FeedbackStatus]] = Query(None),
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+):
+    """
+    Obtener feedback del usuario con filtros
+    """
+    try:
+        # Construir filtros
+        where_conditions = {"userId": current_user_id}
+        
+        if categories:
+            where_conditions["category"] = {"in": [cat.value for cat in categories]}
+        
+        if statuses:
+            where_conditions["status"] = {"in": [status.value for status in statuses]}
+        
+        # Contar total
+        total = await db.feedback.count(where=where_conditions)
+        
+        # Obtener feedback paginado
+        feedbacks = await db.feedback.find_many(
+            where=where_conditions,
+            order={"createdAt": "desc"},
+            skip=pagination.offset,
+            take=pagination.limit
+        )
+        
+        # Convertir a schema
+        feedback_responses = []
+        for feedback in feedbacks:
+            response = FeedbackResponse(
+                id=feedback.id,
+                user_id=feedback.userId,
+                category=FeedbackCategory(feedback.category),
+                title=feedback.content[:50] + "..." if len(feedback.content) > 50 else feedback.content,
+                content=feedback.content,
+                rating=feedback.rating,
+                status=FeedbackStatus(feedback.status),
+                context_data=feedback.contextData,
+                created_at=feedback.createdAt,
+                updated_at=feedback.updatedAt
+            )
+            feedback_responses.append(response)
+        
+        # Crear metadatos de paginación
+        from app.schemas.common import PaginationMeta
+        meta = PaginationMeta.create(
+            page=pagination.page,
+            limit=pagination.limit,
+            total=total
+        )
+        
+        return PaginatedResponse(
+            data=feedback_responses,
+            meta=meta
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo feedback: {str(e)}"
+        )
 
 
-class FeedbackCreate(BaseModel):
-    """Schema para crear feedback"""
-    category: FeedbackCategory = Field(..., description="Categoría del feedback")
-    title: str = Field(
-        ..., 
-        min_length=5, 
-        max_length=200,
-        description="Título del feedback"
-    )
-    content: str = Field(
-        ..., 
-        min_length=10, 
-        max_length=2000,
-        description="Contenido del feedback"
-    )
-    rating: Optional[int] = Field(
-        None, 
-        ge=1, 
-        le=5, 
-        description="Calificación (1-5 estrellas)"
-    )
-    
-    # Contexto específico
-    related_analysis_id: Optional[str] = Field(
-        None, 
-        description="ID del análisis relacionado"
-    )
-    related_recommendation_id: Optional[str] = Field(
-        None, 
-        description="ID de la recomendación relacionada"
-    )
-    
-    # Información adicional
-    user_agent: Optional[str] = Field(None, description="User agent del navegador")
-    page_url: Optional[str] = Field(None, description="URL de la página")
-    context_data: Optional[Dict[str, Any]] = Field(
-        None, 
-        description="Datos adicionales del contexto"
-    )
-    
-    # Metadatos de contacto (opcional)
-    contact_email: Optional[str] = Field(None, description="Email de contacto opcional")
-    contact_phone: Optional[str] = Field(None, description="Teléfono de contacto opcional")
-    
-    @validator('title')
-    def validate_title(cls, v):
-        """Validar título del feedback"""
-        if not v or len(v.strip()) == 0:
-            raise ValueError('El título es requerido')
-        return v.strip()
-    
-    @validator('content')
-    def validate_content(cls, v):
-        """Validar contenido del feedback"""
-        if not v or len(v.strip()) == 0:
-            raise ValueError('El contenido es requerido')
-        return v.strip()
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "category": "facial_analysis",
-                "title": "Análisis muy preciso",
-                "content": "El análisis de mi forma de rostro fue muy acertado y las recomendaciones me encantaron.",
-                "rating": 5,
-                "related_analysis_id": "analysis_123456789",
-                "context_data": {
-                    "face_shape_detected": "ovalado",
-                    "confidence_level": 85
+@router.get("/{feedback_id}", response_model=FeedbackResponse)
+async def get_feedback(
+    feedback_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> FeedbackResponse:
+    """
+    Obtener feedback específico
+    """
+    try:
+        feedback = await db.feedback.find_unique(
+            where={"id": feedback_id}
+        )
+        
+        if not feedback:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Feedback no encontrado"
+            )
+        
+        # Verificar que pertenece al usuario
+        if feedback.userId != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos para ver este feedback"
+            )
+        
+        return FeedbackResponse(
+            id=feedback.id,
+            user_id=feedback.userId,
+            category=FeedbackCategory(feedback.category),
+            title=feedback.content[:50] + "..." if len(feedback.content) > 50 else feedback.content,
+            content=feedback.content,
+            rating=feedback.rating,
+            status=FeedbackStatus(feedback.status),
+            context_data=feedback.contextData,
+            created_at=feedback.createdAt,
+            updated_at=feedback.updatedAt
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo feedback: {str(e)}"
+        )
+
+
+@router.put("/{feedback_id}", response_model=FeedbackResponse)
+async def update_feedback(
+    feedback_id: str,
+    feedback_update: FeedbackUpdate,
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> FeedbackResponse:
+    """
+    Actualizar feedback del usuario
+    """
+    try:
+        # Verificar que el feedback existe y pertenece al usuario
+        existing_feedback = await db.feedback.find_unique(
+            where={"id": feedback_id}
+        )
+        
+        if not existing_feedback:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Feedback no encontrado"
+            )
+        
+        if existing_feedback.userId != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos para actualizar este feedback"
+            )
+        
+        # Construir datos de actualización
+        update_data = {}
+        if feedback_update.content is not None:
+            update_data["content"] = feedback_update.content
+        if feedback_update.rating is not None:
+            update_data["rating"] = feedback_update.rating
+        if feedback_update.status is not None:
+            update_data["status"] = feedback_update.status.value
+        
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No hay datos para actualizar"
+            )
+        
+        # Actualizar feedback
+        updated_feedback = await db.feedback.update(
+            where={"id": feedback_id},
+            data=update_data
+        )
+        
+        return FeedbackResponse(
+            id=updated_feedback.id,
+            user_id=updated_feedback.userId,
+            category=FeedbackCategory(updated_feedback.category),
+            title=feedback_update.title or existing_feedback.content[:50],
+            content=updated_feedback.content,
+            rating=updated_feedback.rating,
+            status=FeedbackStatus(updated_feedback.status),
+            context_data=updated_feedback.contextData,
+            created_at=updated_feedback.createdAt,
+            updated_at=updated_feedback.updatedAt
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error actualizando feedback: {str(e)}"
+        )
+
+
+@router.delete("/{feedback_id}", response_model=APIResponse)
+async def delete_feedback(
+    feedback_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Eliminar feedback del usuario
+    """
+    try:
+        # Verificar que el feedback existe y pertenece al usuario
+        feedback = await db.feedback.find_unique(
+            where={"id": feedback_id}
+        )
+        
+        if not feedback:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Feedback no encontrado"
+            )
+        
+        if feedback.userId != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos para eliminar este feedback"
+            )
+        
+        # Eliminar feedback
+        await db.feedback.delete(
+            where={"id": feedback_id}
+        )
+        
+        return APIResponse(message="Feedback eliminado exitosamente")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error eliminando feedback: {str(e)}"
+        )
+
+
+@router.get("/stats/summary", response_model=APIResponse)
+async def get_feedback_stats(
+    current_user_id: str = Depends(get_current_user_id),
+    db=Depends(get_db)
+) -> APIResponse:
+    """
+    Obtener estadísticas de feedback del usuario
+    """
+    try:
+        # Obtener feedback del usuario
+        feedbacks = await db.feedback.find_many(
+            where={"userId": current_user_id}
+        )
+        
+        total_feedback = len(feedbacks)
+        
+        if total_feedback == 0:
+            return APIResponse(
+                message="No hay feedback disponible",
+                data={
+                    "total_feedback": 0,
+                    "average_rating": 0,
+                    "category_distribution": {},
+                    "status_distribution": {}
                 }
+            )
+        
+        # Calcular estadísticas
+        category_distribution = {}
+        status_distribution = {}
+        total_rating = 0
+        rating_count = 0
+        
+        for feedback in feedbacks:
+            # Por categoría
+            category = feedback.category
+            category_distribution[category] = category_distribution.get(category, 0) + 1
+            
+            # Por estado
+            status = feedback.status
+            status_distribution[status] = status_distribution.get(status, 0) + 1
+            
+            # Rating promedio
+            if feedback.rating:
+                total_rating += feedback.rating
+                rating_count += 1
+        
+        average_rating = total_rating / rating_count if rating_count > 0 else 0
+        
+        return APIResponse(
+            message="Estadísticas de feedback obtenidas exitosamente",
+            data={
+                "total_feedback": total_feedback,
+                "average_rating": round(average_rating, 1),
+                "category_distribution": category_distribution,
+                "status_distribution": status_distribution
             }
-        }
-
-
-class FeedbackUpdate(BaseModel):
-    """Schema para actualizar feedback"""
-    title: Optional[str] = Field(
-        None, 
-        min_length=5, 
-        max_length=200
-    )
-    content: Optional[str] = Field(
-        None, 
-        min_length=10, 
-        max_length=2000
-    )
-    rating: Optional[int] = Field(None, ge=1, le=5)
-    status: Optional[FeedbackStatus] = None
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "content": "Contenido actualizado del feedback",
-                "rating": 4
-            }
-        }
-
-
-class FeedbackResponse(BaseModel, TimestampMixin):
-    """Schema para respuesta de feedback"""
-    id: str = Field(..., description="ID único del feedback")
-    user_id: str = Field(..., description="ID del usuario")
-    category: FeedbackCategory = Field(..., description="Categoría del feedback")
-    title: str = Field(..., description="Título del feedback")
-    content: str = Field(..., description="Contenido del feedback")
-    rating: Optional[int] = Field(None, description="Calificación")
-    status: FeedbackStatus = Field(default=FeedbackStatus.PENDING, description="Estado")
-    priority: FeedbackPriority = Field(default=FeedbackPriority.MEDIUM, description="Prioridad")
-    
-    # Contexto
-    related_analysis_id: Optional[str] = None
-    related_recommendation_id: Optional[str] = None
-    context_data: Optional[Dict[str, Any]] = None
-    
-    # Metadatos de contacto
-    contact_email: Optional[str] = None
-    contact_phone: Optional[str] = None
-    
-    # Respuesta del equipo
-    admin_response: Optional[str] = Field(None, description="Respuesta del administrador")
-    admin_user_id: Optional[str] = Field(None, description="ID del admin que respondió")
-    response_date: Optional[datetime] = Field(None, description="Fecha de respuesta")
-    
-    # Métricas
-    helpfulness_votes: int = Field(default=0, description="Votos de utilidad")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "id": "feedback_123456789",
-                "user_id": "user_123456789",
-                "category": "facial_analysis",
-                "title": "Análisis muy preciso",
-                "content": "El análisis fue muy acertado",
-                "rating": 5,
-                "status": "reviewed",
-                "priority": "medium",
-                "created_at": "2024-01-01T12:00:00Z"
-            }
-        }
-
-
-class FeedbackSummary(BaseModel):
-    """Schema para resumen de feedback"""
-    total_feedback: int = Field(..., description="Total de feedback recibido")
-    average_rating: float = Field(..., description="Calificación promedio")
-    category_distribution: Dict[FeedbackCategory, int] = Field(
-        ..., 
-        description="Distribución por categoría"
-    )
-    status_distribution: Dict[FeedbackStatus, int] = Field(
-        ..., 
-        description="Distribución por estado"
-    )
-    recent_feedback: List[FeedbackResponse] = Field(
-        ..., 
-        description="Feedback reciente"
-    )
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "total_feedback": 150,
-                "average_rating": 4.2,
-                "category_distribution": {
-                    "facial_analysis": 60,
-                    "chromatic_analysis": 40,
-                    "recommendations": 30,
-                    "user_experience": 20
-                },
-                "status_distribution": {
-                    "pending": 10,
-                    "reviewed": 80,
-                    "resolved": 60
-                },
-                "recent_feedback": []
-            }
-        }
-
-
-class FeedbackFilter(BaseModel):
-    """Schema para filtros de feedback"""
-    categories: Optional[List[FeedbackCategory]] = Field(None, description="Filtrar por categorías")
-    statuses: Optional[List[FeedbackStatus]] = Field(None, description="Filtrar por estados")
-    priorities: Optional[List[FeedbackPriority]] = Field(None, description="Filtrar por prioridades")
-    min_rating: Optional[int] = Field(None, ge=1, le=5, description="Calificación mínima")
-    max_rating: Optional[int] = Field(None, ge=1, le=5, description="Calificación máxima")
-    date_from: Optional[datetime] = Field(None, description="Fecha desde")
-    date_to: Optional[datetime] = Field(None, description="Fecha hasta")
-    has_response: Optional[bool] = Field(None, description="Tiene respuesta del admin")
-    search: Optional[str] = Field(None, description="Buscar en título y contenido")
-    
-    @validator('max_rating')
-    def validate_rating_range(cls, v, values):
-        if v and 'min_rating' in values and values['min_rating']:
-            if v < values['min_rating']:
-                raise ValueError('max_rating debe ser mayor o igual que min_rating')
-        return v
-    
-    @validator('date_to')
-    def validate_date_range(cls, v, values):
-        if v and 'date_from' in values and values['date_from']:
-            if v < values['date_from']:
-                raise ValueError('date_to debe ser posterior a date_from')
-        return v
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "categories": ["facial_analysis", "recommendations"],
-                "statuses": ["pending", "reviewed"],
-                "min_rating": 4,
-                "date_from": "2024-01-01T00:00:00Z",
-                "search": "análisis preciso"
-            }
-        }
-
-
-class FeedbackAnalytics(BaseModel):
-    """Schema para analíticas de feedback"""
-    period: str = Field(..., description="Período analizado")
-    metrics: Dict[str, Any] = Field(..., description="Métricas calculadas")
-    trends: Dict[str, List[float]] = Field(..., description="Tendencias temporales")
-    insights: List[str] = Field(..., description="Insights derivados")
-    recommendations: List[str] = Field(..., description="Recomendaciones de mejora")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "period": "last_30_days",
-                "metrics": {
-                    "total_feedback": 50,
-                    "average_rating": 4.3,
-                    "satisfaction_rate": 0.86,
-                    "response_time_avg_hours": 24
-                },
-                "trends": {
-                    "daily_feedback_count": [2, 3, 1, 4, 2, 3, 5],
-                    "daily_average_rating": [4.5, 4.2, 4.0, 4.3, 4.6, 4.1, 4.4]
-                },
-                "insights": [
-                    "El 86% de los usuarios están satisfechos",
-                    "Tiempo de respuesta ha mejorado 20%"
-                ],
-                "recommendations": [
-                    "Mantener calidad en análisis facial",
-                    "Mejorar tiempo de respuesta a feedback"
-                ]
-            }
-        }
-
-
-class FeedbackBulkAction(BaseModel):
-    """Schema para acciones en lote sobre feedback"""
-    feedback_ids: List[str] = Field(..., description="IDs de feedback a procesar")
-    action: str = Field(..., description="Acción a realizar")
-    parameters: Optional[Dict[str, Any]] = Field(None, description="Parámetros de la acción")
-    
-    @validator('feedback_ids')
-    def validate_feedback_ids(cls, v):
-        if len(v) == 0:
-            raise ValueError('Debe proporcionar al menos un ID de feedback')
-        if len(v) > 100:
-            raise ValueError('Máximo 100 feedback por operación en lote')
-        return v
-    
-    @validator('action')
-    def validate_action(cls, v):
-        allowed_actions = [
-            'mark_as_reviewed', 
-            'mark_as_resolved', 
-            'change_priority', 
-            'assign_admin', 
-            'bulk_delete'
-        ]
-        if v not in allowed_actions:
-            raise ValueError(f'Acción no permitida. Permitidas: {allowed_actions}')
-        return v
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "feedback_ids": ["feedback_1", "feedback_2", "feedback_3"],
-                "action": "mark_as_reviewed",
-                "parameters": {
-                    "admin_user_id": "admin_123"
-                }
-            }
-        }
-
-
-class AdminResponse(BaseModel):
-    """Schema para respuesta de administrador"""
-    feedback_id: str = Field(..., description="ID del feedback")
-    response_content: str = Field(
-        ..., 
-        min_length=10, 
-        max_length=1000,
-        description="Contenido de la respuesta"
-    )
-    new_status: Optional[FeedbackStatus] = Field(None, description="Nuevo estado del feedback")
-    new_priority: Optional[FeedbackPriority] = Field(None, description="Nueva prioridad")
-    internal_notes: Optional[str] = Field(None, description="Notas internas")
-    
-    @validator('response_content')
-    def validate_response_content(cls, v):
-        if not v or len(v.strip()) == 0:
-            raise ValueError('El contenido de la respuesta es requerido')
-        return v.strip()
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "feedback_id": "feedback_123456789",
-                "response_content": "Gracias por tu feedback. Hemos tomado nota de tu sugerencia.",
-                "new_status": "resolved",
-                "new_priority": "low",
-                "internal_notes": "Usuario muy satisfecho con el análisis"
-            }
-        }
-
-
-class FeedbackExport(BaseModel):
-    """Schema para exportación de feedback"""
-    filters: Optional[FeedbackFilter] = Field(None, description="Filtros a aplicar")
-    format: str = Field(default="csv", regex="^(csv|json|xlsx)$", description="Formato de exportación")
-    include_personal_data: bool = Field(default=False, description="Incluir datos personales")
-    include_context_data: bool = Field(default=True, description="Incluir datos de contexto")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "filters": {
-                    "categories": ["facial_analysis"],
-                    "date_from": "2024-01-01T00:00:00Z"
-                },
-                "format": "csv",
-                "include_personal_data": False,
-                "include_context_data": True
-            }
-        }
-
-
-class FeedbackNotification(BaseModel, TimestampMixin):
-    """Schema para notificaciones de feedback"""
-    feedback_id: str = Field(..., description="ID del feedback")
-    user_id: str = Field(..., description="ID del usuario")
-    notification_type: str = Field(..., description="Tipo de notificación")
-    title: str = Field(..., description="Título de la notificación")
-    message: str = Field(..., description="Mensaje de la notificación")
-    is_sent: bool = Field(default=False, description="Notificación enviada")
-    delivery_method: str = Field(default="email", description="Método de entrega")
-    
-    class Config(BaseConfig):
-        schema_extra = {
-            "example": {
-                "feedback_id": "feedback_123456789",
-                "user_id": "user_123456789",
-                "notification_type": "feedback_response",
-                "title": "Respuesta a tu feedback",
-                "message": "Hemos respondido a tu feedback sobre el análisis facial",
-                "is_sent": True,
-                "delivery_method": "email"
-            }
-        }
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo estadísticas: {str(e)}"
+        )

@@ -12,7 +12,13 @@ from app.api.v1.endpoints import (
     chromatic_analysis,
     feedback,
     files,
-    cache
+    cache,
+    wardrobe,
+    outfits,
+    wardrobe_analysis,
+    shopping,
+    affiliates,
+    flask_migration
 )
 
 
@@ -60,4 +66,40 @@ api_router.include_router(
     cache.router,
     prefix="/cache",
     tags=["Cache & Monitoreo"]
+)
+
+# Nuevos routers del armario virtual
+api_router.include_router(
+    wardrobe.router,
+    tags=["Armario Virtual"]
+)
+
+api_router.include_router(
+    outfits.router,
+    tags=["Outfits"]
+)
+
+api_router.include_router(
+    wardrobe_analysis.router,
+    tags=["Análisis de Armario"]
+)
+
+# Nuevos routers de shopping y afiliados
+api_router.include_router(
+    shopping.router,
+    prefix="/shopping",
+    tags=["Shopping & Recomendaciones"]
+)
+
+api_router.include_router(
+    affiliates.router,
+    prefix="/affiliates",
+    tags=["Afiliados & Comisiones"]
+)
+
+# Router de migración de Flask (compatibilidad)
+api_router.include_router(
+    flask_migration.router,
+    prefix="/flask",
+    tags=["Migración Flask (Compatibilidad)"]
 )

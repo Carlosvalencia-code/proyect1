@@ -521,6 +521,45 @@ IMPORTANTE: Responde SOLO con el JSON, sin texto adicional antes o después.
             "configured": self.model is not None,
             "safety_settings_enabled": True
         }
+    
+    async def analyze_image(self, image_base64: str, prompt: str) -> Optional[Dict[str, Any]]:
+        """
+        Método genérico para analizar imagen con prompt personalizado
+        Compatible con la migración de Flask
+        """
+        try:
+            if not self.model:
+                raise ValueError("Gemini no está configurado")
+            
+            # Procesar imagen
+            image = self._process_image(image_base64)
+            
+            # Realizar consulta a Gemini
+            response = await asyncio.to_thread(
+                self.model.generate_content,
+                [prompt, image],
+                safety_settings=self.safety_settings
+            )
+            
+            # Parsear respuesta JSON
+            result = self._parse_json_response(response.text)
+            
+            if not result:
+                # Fallback si no se puede parsear como JSON
+                return {
+                    "raw_response": response.text,
+                    "parsed": False
+                }
+            
+            return result
+            
+        except Exception as e:
+            AILogger.log_ai_error(
+                error_type="image_analysis_error",
+                error_message=str(e),
+                metadata={"prompt_length": len(prompt), "image_size": len(image_base64)}
+            )
+            return None
 
 
 # Instancia global del servicio

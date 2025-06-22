@@ -107,6 +107,22 @@ model User {
   subscriptionHistory SubscriptionHistory[]
   dailyUsage          DailyUsage[]
   
+  // Relaciones del armario virtual
+  wardrobeItems       WardrobeItem[]
+  wardrobeCollections WardrobeCollection[]
+  outfits             Outfit[]
+  stylePreferences    StylePreference?
+  shoppingRecommendations ShoppingRecommendation[]
+  wardrobeAnalyses    WardrobeAnalysis[]
+  outfitCalendar      OutfitCalendar[]
+  
+  // Relaciones del sistema de shopping
+  wishlistItems       WishlistItem[]
+  affiliateEarnings   AffiliateEarning[]
+  purchaseTracking    PurchaseTracking[]
+  priceAlerts         PriceAlert[]
+  shoppingPreferences ShoppingPreference?
+  
   @@map("users")
 }
 
@@ -576,6 +592,849 @@ model SystemConfig {
   @@map("system_config")
 }
 
-// Agregar relaciones faltantes al modelo User
-// (Esto se agrega al modelo User existente)
+// =============================================================================
+// MODELOS DEL ARMARIO VIRTUAL
+// =============================================================================
+
+// Enumeraciones para el armario virtual
+enum ClothingCategory {
+  TOPS
+  BOTTOMS
+  DRESSES
+  OUTERWEAR
+  SHOES
+  ACCESSORIES
+  BAGS
+  JEWELRY
+  UNDERWEAR
+  ACTIVEWEAR
+  SLEEPWEAR
+  SWIMWEAR
+}
+
+enum ClothingSubcategory {
+  // Tops
+  T_SHIRT
+  SHIRT
+  BLOUSE
+  TANK_TOP
+  SWEATER
+  HOODIE
+  CARDIGAN
+  BLAZER
+  JACKET
+  COAT
+  VEST
+  
+  // Bottoms
+  JEANS
+  TROUSERS
+  SHORTS
+  SKIRT
+  LEGGINGS
+  
+  // Dresses
+  CASUAL_DRESS
+  FORMAL_DRESS
+  COCKTAIL_DRESS
+  MAXI_DRESS
+  MINI_DRESS
+  
+  // Shoes
+  SNEAKERS
+  BOOTS
+  HEELS
+  FLATS
+  SANDALS
+  FORMAL_SHOES
+  
+  // Accessories
+  HAT
+  SCARF
+  BELT
+  WATCH
+  SUNGLASSES
+  
+  // Bags
+  HANDBAG
+  BACKPACK
+  CLUTCH
+  TOTE
+  CROSSBODY
+  
+  // Jewelry
+  EARRINGS
+  NECKLACE
+  BRACELET
+  RING
+}
+
+enum ClothingStyle {
+  CASUAL
+  FORMAL
+  BUSINESS
+  ELEGANT
+  SPORTY
+  BOHEMIAN
+  MINIMALIST
+  VINTAGE
+  TRENDY
+  CLASSIC
+  EDGY
+  ROMANTIC
+}
+
+enum Season {
+  SPRING
+  SUMMER
+  FALL
+  WINTER
+  ALL_SEASON
+}
+
+enum Occasion {
+  WORK
+  CASUAL
+  FORMAL
+  PARTY
+  DATE
+  VACATION
+  EXERCISE
+  HOME
+  SPECIAL_EVENT
+  TRAVEL
+}
+
+enum FitType {
+  TIGHT
+  FITTED
+  REGULAR
+  LOOSE
+  OVERSIZED
+}
+
+enum OutfitStatus {
+  DRAFT
+  SAVED
+  FAVORITE
+  WORN
+  SCHEDULED
+}
+
+enum WardrobeAnalysisType {
+  VERSATILITY
+  COLOR_HARMONY
+  GAPS_ANALYSIS
+  COST_PER_WEAR
+  SEASONAL_DISTRIBUTION
+  STYLE_ANALYSIS
+}
+
+enum RecommendationType {
+  MISSING_BASIC
+  COLOR_COMPLEMENT
+  STYLE_UPGRADE
+  SEASONAL_NEED
+  OCCASION_SPECIFIC
+  TREND_UPDATE
+}
+
+// Modelo principal para items del armario
+model WardrobeItem {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Información básica del item
+  name        String
+  description String?
+  brand       String?
+  size        String?
+  color       String // Color principal
+  secondaryColors String[] // Colores secundarios como array
+  
+  // Categorización
+  category    ClothingCategory
+  subcategory ClothingSubcategory?
+  style       ClothingStyle[]
+  
+  // Características técnicas
+  material    String?
+  careInstructions String?
+  fitType     FitType?
+  
+  // Uso y versatilidad
+  season      Season[]
+  occasions   Occasion[]
+  
+  // Información de compra
+  purchaseDate  DateTime?
+  purchasePrice Decimal? // Precio de compra
+  purchaseStore String?  // Tienda donde se compró
+  
+  // Métricas de uso
+  timesWorn     Int @default(0)
+  lastWorn      DateTime?
+  costPerWear   Decimal? // Calculado automáticamente
+  
+  // Análisis IA
+  aiAnalysis    Json? // Resultado del análisis de IA
+  colorAnalysis Json? // Análisis de colores
+  styleScore    Float? // Puntuación de estilo (0-100)
+  versatilityScore Float? // Puntuación de versatilidad (0-100)
+  
+  // Imágenes y multimedia
+  imageUrl      String[] // URLs de imágenes
+  thumbnailUrl  String?  // Imagen en miniatura
+  
+  // Tags y etiquetas
+  tags          String[] // Tags definidos por el usuario
+  aiTags        String[] // Tags generados por IA
+  
+  // Estado y visibilidad
+  isActive      Boolean @default(true)
+  isPublic      Boolean @default(false) // Para compartir con otros usuarios
+  isFavorite    Boolean @default(false)
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  collections   WardrobeCollection[]
+  outfitItems   OutfitItem[]
+  
+  @@map("wardrobe_items")
+}
+
+// Colecciones para organizar el armario (ej: "Trabajo", "Vacaciones")
+model WardrobeCollection {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Información de la colección
+  name        String
+  description String?
+  color       String? // Color para identificar la colección
+  icon        String? // Icono para la colección
+  
+  // Configuración
+  isDefault   Boolean @default(false) // Colección por defecto
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  items WardrobeItem[]
+  
+  @@map("wardrobe_collections")
+}
+
+// Outfits - combinaciones de prendas
+model Outfit {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Información del outfit
+  name        String
+  description String?
+  
+  // Características del outfit
+  style       ClothingStyle[]
+  occasion    Occasion[]
+  season      Season
+  
+  // Estado y métricas
+  status      OutfitStatus @default(DRAFT)
+  rating      Float?       // Calificación del usuario (0-5)
+  confidence  Float?       // Confianza de la IA en la combinación (0-100)
+  
+  // Información de uso
+  timesWorn   Int      @default(0)
+  lastWorn    DateTime?
+  dateCreated DateTime @default(now())
+  
+  // Imagen del outfit
+  imageUrl    String?
+  thumbnailUrl String?
+  
+  // Análisis del outfit
+  colorHarmony    Json? // Análisis de armonía de colores
+  styleCoherence  Float? // Coherencia de estilo (0-100)
+  appropriateness Float? // Apropiado para la ocasión (0-100)
+  
+  // Tags y notas
+  tags  String[]
+  notes String?
+  
+  // Clima y contexto
+  weather     String? // Clima cuando se usó
+  temperature Float?  // Temperatura
+  location    String? // Ubicación donde se usó
+  
+  // Estado
+  isActive    Boolean @default(true)
+  isPublic    Boolean @default(false)
+  isFavorite  Boolean @default(false)
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  items           OutfitItem[]
+  calendarEvents  OutfitCalendar[]
+  
+  @@map("outfits")
+}
+
+// Relación many-to-many entre outfits e items
+model OutfitItem {
+  id       String @id @default(cuid())
+  outfitId String
+  itemId   String
+  
+  outfit WardrobeItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item   Outfit       @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  
+  // Información específica del item en este outfit
+  layer       Int?    // Capa del item (1=interior, 2=medio, 3=exterior)
+  isMain      Boolean @default(false) // Si es el item principal del outfit
+  isOptional  Boolean @default(false) // Si es opcional para el outfit
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  
+  @@unique([outfitId, itemId])
+  @@map("outfit_items")
+}
+
+// Preferencias de estilo del usuario (para ML)
+model StylePreference {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Preferencias de estilo
+  preferredStyles   ClothingStyle[]
+  avoidedStyles     ClothingStyle[]
+  
+  // Preferencias de colores
+  preferredColors   String[] // Colores favoritos
+  avoidedColors     String[] // Colores que evita
+  
+  // Preferencias de ocasiones
+  primaryOccasions  Occasion[] // Ocasiones más frecuentes
+  
+  // Preferencias de marcas y presupuesto
+  preferredBrands   String[]
+  budgetRange       Json // {min: number, max: number} por categoría
+  
+  // Preferencias de fit y comodidad
+  preferredFit      FitType[]
+  comfortPriority   Float @default(5.0) // Prioridad de comodidad (0-10)
+  
+  // Preferencias climáticas
+  preferredSeasons  Season[]
+  heatTolerance     Float @default(5.0) // Tolerancia al calor (0-10)
+  coldTolerance     Float @default(5.0) // Tolerancia al frío (0-10)
+  
+  // Configuración de recomendaciones
+  adventurousness   Float @default(5.0) // Qué tan aventurero (0-10)
+  brandLoyalty      Float @default(5.0) // Lealtad a marcas (0-10)
+  sustainabilityImportance Float @default(5.0) // Importancia sostenibilidad (0-10)
+  
+  // Machine Learning Data
+  interactionData   Json? // Datos de interacciones para ML
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId])
+  @@map("style_preferences")
+}
+
+// Recomendaciones de compras
+model ShoppingRecommendation {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relación con producto (opcional para recomendaciones genéricas)
+  productId String?
+  product   Product? @relation("ProductRecommendations", fields: [productId], references: [id], onDelete: SetNull)
+  
+  // Información del item recomendado
+  itemType        ClothingCategory
+  itemSubtype     ClothingSubcategory?
+  recommendedName String
+  description     String
+  
+  // Razón de la recomendación
+  recommendationType RecommendationType
+  reason            String // Explicación detallada
+  priority          Float  @default(5.0) // Prioridad (0-10)
+  confidence        Float  @default(5.0) // Confianza en la recomendación (0-10)
+  
+  // Información del producto (puede ser override si no hay productId)
+  productName     String?
+  brand           String?
+  color           String?
+  size            String?
+  price           Decimal?
+  salePrice       Decimal?
+  
+  // Enlaces de afiliados
+  affiliateLink   String?
+  imageUrl        String?
+  productUrl      String?
+  store           String?
+  
+  // Métricas de valor
+  estimatedUses   Int?    // Usos estimados por año
+  costPerWear     Decimal? // Costo estimado por uso
+  roiScore        Float?   // ROI score (0-100)
+  
+  // Análisis de gap
+  wardrobeGap     String? // Qué gap llena en el armario
+  stylistNotes    String? // Notas del sistema de IA
+  
+  // Estado de la recomendación
+  isActive        Boolean @default(true)
+  isViewed        Boolean @default(false)
+  isClicked       Boolean @default(false)
+  isPurchased     Boolean @default(false)
+  isRejected      Boolean @default(false)
+  
+  // Fechas importantes
+  validUntil      DateTime? // Hasta cuándo es válida
+  purchasedAt     DateTime? // Cuándo se compró
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("shopping_recommendations")
+}
+
+// Análisis del armario
+model WardrobeAnalysis {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Tipo de análisis
+  analysisType WardrobeAnalysisType
+  
+  // Resultados del análisis
+  results      Json  // Resultados detallados
+  score        Float // Puntuación general (0-100)
+  insights     String[] // Insights clave
+  
+  // Recomendaciones basadas en el análisis
+  recommendations String[] // Lista de recomendaciones
+  priorities      String[] // Prioridades de mejora
+  
+  // Estadísticas del armario
+  totalItems      Int
+  itemsByCategory Json // Distribución por categoría
+  itemsByColor    Json // Distribución por color
+  itemsBySeason   Json // Distribución por temporada
+  
+  // Métricas de valor
+  totalValue      Decimal? // Valor total del armario
+  averageCostPerWear Decimal? // Promedio de costo por uso
+  underutilizedItems Int // Items poco utilizados
+  
+  // Análisis de gaps
+  missingBasics   String[] // Básicos que faltan
+  colorGaps       String[] // Colores faltantes
+  occasionGaps    String[] // Ocasiones no cubiertas
+  
+  // Metadatos
+  analysisDate DateTime @default(now())
+  
+  @@map("wardrobe_analyses")
+}
+
+// Calendario de outfits
+model OutfitCalendar {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  outfitId String
+  outfit   Outfit @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  
+  // Información del evento
+  date        DateTime
+  startTime   DateTime?
+  endTime     DateTime?
+  title       String?
+  description String?
+  
+  // Contexto del evento
+  occasion    Occasion
+  location    String?
+  weather     String? // Clima esperado
+  temperature Float?  // Temperatura esperada
+  
+  // Estado del evento
+  isConfirmed Boolean @default(false)
+  isWorn      Boolean @default(false)
+  isCompleted Boolean @default(false)
+  
+  // Notas y rating
+  notes       String?
+  rating      Float? // Calificación después del evento (0-5)
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, date, outfitId])
+  @@map("outfit_calendar")
+}
+
+// =============================================================================
+// SHOPPING AND AFFILIATE SYSTEM MODELS
+// =============================================================================
+
+// Productos externos de merchants
+model Product {
+  id String @id @default(cuid())
+  
+  // Información del merchant
+  merchant     String  // "amazon", "zara", "asos", etc.
+  externalId   String  // ID del producto en el merchant
+  merchantUrl  String  // URL original del producto
+  
+  // Información básica del producto
+  name         String
+  description  String?
+  brand        String?
+  
+  // Información de precio
+  price        Decimal
+  salePrice    Decimal? // Precio en oferta
+  currency     String   @default("USD")
+  priceHistory Json?    // Historial de precios
+  
+  // Información visual
+  images       String[] // URLs de imágenes
+  thumbnailUrl String?  // Imagen principal
+  colors       String[] // Colores disponibles
+  
+  // Categorización
+  category     ClothingCategory
+  subcategory  ClothingSubcategory?
+  style        ClothingStyle[]
+  season       Season[]
+  occasion     Occasion[]
+  
+  // Información de tallas y fit
+  sizes        String[] // Tallas disponibles
+  fitType      FitType?
+  sizingNotes  String?  // Notas sobre el tallaje
+  
+  // Métricas de calidad
+  rating       Float?   // Rating promedio (0-5)
+  reviewCount  Int      @default(0)
+  popularity   Float    @default(0) // Score de popularidad
+  
+  // Información de disponibilidad
+  inStock      Boolean  @default(true)
+  stockLevel   String?  // "low", "medium", "high"
+  
+  // Datos para recomendaciones
+  tags         String[] // Tags para búsqueda
+  keywords     String[] // Keywords para matching
+  
+  // Estado del producto
+  isActive     Boolean  @default(true)
+  isMonitored  Boolean  @default(false) // Si monitoreamos precio
+  
+  // Metadatos
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastChecked  DateTime @default(now()) // Última vez que verificamos info
+  
+  // Relaciones
+  wishlistItems        WishlistItem[]
+  recommendations      ShoppingRecommendation[] @relation("ProductRecommendations")
+  affiliateEarnings    AffiliateEarning[]
+  purchaseTracking     PurchaseTracking[]
+  priceAlerts          PriceAlert[]
+  
+  @@unique([merchant, externalId])
+  @@index([category, price])
+  @@index([merchant, inStock])
+  @@index([brand, category])
+  @@map("products")
+}
+
+// Wishlist de productos
+model WishlistItem {
+  id        String @id @default(cuid())
+  userId    String
+  productId String
+  
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Configuración de alertas
+  priceThreshold   Decimal? // Notificar si precio baja de este valor
+  notifyRestock    Boolean  @default(true)
+  notifyPriceDrop  Boolean  @default(true)
+  notifySale       Boolean  @default(true)
+  
+  // Información adicional
+  priority         Int      @default(5) // Prioridad en wishlist (1-10)
+  notes           String?
+  targetPrice     Decimal? // Precio objetivo
+  dateNeeded      DateTime? // Fecha límite para comprar
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  isPurchased     Boolean  @default(false)
+  purchasedAt     DateTime?
+  
+  // Metadatos
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, productId])
+  @@map("wishlist_items")
+}
+
+// Ganancias por afiliados
+model AffiliateEarning {
+  id        String @id @default(cuid())
+  userId    String
+  productId String
+  
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Información del merchant/programa
+  merchant        String
+  programId       String? // ID del programa de afiliados
+  affiliateId     String? // Nuestro ID de afiliado
+  
+  // Información financiera
+  commissionRate  Float   // Porcentaje de comisión
+  saleAmount      Decimal // Monto de la venta
+  commissionAmount Decimal // Comisión ganada
+  currency        String  @default("USD")
+  
+  // Enlaces y tracking
+  affiliateLink   String
+  trackingCode    String? // Código de tracking del click
+  referralCode    String? // Código de referido
+  
+  // Estado de la comisión
+  status          AffiliateStatus @default(PENDING)
+  paidAt          DateTime?
+  paymentMethod   String?
+  paymentId       String?
+  
+  // Información del cliente
+  customerEmail   String?
+  customerData    Json?   // Datos adicionales del cliente
+  
+  // Métricas
+  clickedAt       DateTime
+  purchasedAt     DateTime?
+  conversionTime  Int?    // Tiempo entre click y compra (horas)
+  
+  // Metadatos
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("affiliate_earnings")
+}
+
+// Tracking de compras y clicks
+model PurchaseTracking {
+  id        String @id @default(cuid())
+  userId    String
+  productId String?
+  
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  // Información del tracking
+  trackingId      String   @unique // ID único para este tracking
+  sessionId       String?  // ID de sesión
+  
+  // Información del click
+  clickedAt       DateTime
+  clickSource     String   // "recommendations", "wishlist", "search", etc.
+  affiliateLink   String?
+  
+  // Información de la compra (si ocurrió)
+  purchased       Boolean  @default(false)
+  purchasedAt     DateTime?
+  purchaseAmount  Decimal?
+  currency        String   @default("USD")
+  
+  // Información del referrer
+  referrerUrl     String?
+  userAgent       String?
+  ipAddress       String?
+  
+  // Información de conversión
+  conversionTime  Int?     // Tiempo hasta conversión (horas)
+  
+  // Metadatos
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("purchase_tracking")
+}
+
+// Alertas de precio
+model PriceAlert {
+  id        String @id @default(cuid())
+  userId    String
+  productId String
+  
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Configuración de la alerta
+  targetPrice     Decimal  // Precio objetivo
+  alertType       PriceAlertType
+  isActive        Boolean  @default(true)
+  
+  // Información de notificación
+  notificationSent Boolean  @default(false)
+  notifiedAt      DateTime?
+  triggerPrice    Decimal? // Precio que activó la alerta
+  
+  // Configuración de usuario
+  emailNotification Boolean @default(true)
+  pushNotification  Boolean @default(true)
+  smsNotification   Boolean @default(false)
+  
+  // Metadatos
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  expiresAt       DateTime? // Cuándo expira la alerta
+  
+  @@unique([userId, productId, alertType])
+  @@map("price_alerts")
+}
+
+// Análisis de mercado y tendencias
+model MarketTrend {
+  id String @id @default(cuid())
+  
+  // Información de la tendencia
+  name        String
+  description String
+  category    ClothingCategory
+  
+  // Métricas de tendencia
+  popularity  Float    // Score de popularidad (0-100)
+  growth      Float    // Crecimiento % en el período
+  period      String   // "week", "month", "season"
+  
+  // Información de colores y estilos
+  trendingColors String[]
+  trendingStyles ClothingStyle[]
+  
+  // Precios promedio
+  averagePrice   Decimal?
+  priceRange     Json?    // {min: number, max: number}
+  
+  // Información de temporada
+  season         Season?
+  peakMonths     String[] // Meses de mayor popularidad
+  
+  // Fuentes de datos
+  dataSources    String[] // De dónde viene la información
+  
+  // Estado
+  isActive       Boolean  @default(true)
+  confidence     Float    // Confianza en la predicción (0-100)
+  
+  // Metadatos
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  validUntil     DateTime // Hasta cuándo es válida
+  
+  @@map("market_trends")
+}
+
+// Configuración de shopping del usuario
+model ShoppingPreference {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Preferencias de merchants
+  preferredMerchants String[] // Merchants favoritos
+  blockedMerchants   String[] // Merchants bloqueados
+  
+  // Preferencias de presupuesto
+  monthlyBudget      Decimal?
+  maxItemPrice       Decimal?
+  budgetAlerts       Boolean @default(true)
+  
+  // Preferencias de notificaciones
+  enableRecommendations Boolean @default(true)
+  enablePriceAlerts     Boolean @default(true)
+  enableTrendAlerts     Boolean @default(false)
+  enableSaleAlerts      Boolean @default(true)
+  
+  // Frecuencia de notificaciones
+  notificationFrequency String @default("weekly") // "daily", "weekly", "monthly"
+  maxRecommendationsPerDay Int @default(5)
+  
+  // Configuración de afiliados
+  allowAffiliateLinks   Boolean @default(true)
+  shareEarnings         Boolean @default(false) // Compartir % con el usuario
+  
+  // Preferencias de sostenibilidad
+  preferSustainableBrands Boolean @default(false)
+  preferLocalBrands       Boolean @default(false)
+  avoidFastFashion        Boolean @default(false)
+  
+  // Configuración de privacidad
+  shareShoppingData     Boolean @default(false)
+  allowPersonalization  Boolean @default(true)
+  
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId])
+  @@map("shopping_preferences")
+}
+
+// Nuevos enums para el sistema de shopping
+enum AffiliateStatus {
+  PENDING    // Esperando confirmación
+  CONFIRMED  // Compra confirmada
+  PAID       // Comisión pagada
+  REJECTED   // Rechazada
+  CANCELLED  // Cancelada
+}
+
+enum PriceAlertType {
+  PRICE_DROP    // Bajó de precio
+  BACK_IN_STOCK // Volvió al stock
+  SALE_ALERT    // Está en oferta
+  TARGET_PRICE  // Alcanzó precio objetivo
+}
+
+// Actualizar ShoppingRecommendation para referenciar Product
+// Agregar relación al modelo existente
 
