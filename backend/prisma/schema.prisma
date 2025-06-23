@@ -17,4 +17,37 @@ model User {
   hashed_password String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  clothingItems   ClothingItem[] // Relation to ClothingItem model
+}
+
+model ClothingItem {
+  id          String   @id @default(uuid())
+  userId      String   // Foreign key to User
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade) // Relation field
+
+  category    String   // e.g., "Top", "Bottom", "Outerwear", "Shoes", "Accessory"
+  type        String   // e.g., "T-shirt", "Jeans", "Jacket", "Sneakers", "Necklace"
+  color       String   // Dominant color
+  pattern     String?  // e.g., "Solid", "Striped", "Floral"
+  material    String?  // e.g., "Cotton", "Denim", "Wool"
+  brand       String?
+  imageUrl    String?  @map("image_url") // URL to an image of the item
+  notes       String?  // User's personal notes about the item
+
+  // Seasonal suitability
+  isSpring    Boolean  @default(true) @map("is_spring")
+  isSummer    Boolean  @default(true) @map("is_summer")
+  isAutumn    Boolean  @default(true) @map("is_autumn")
+  isWinter    Boolean  @default(true) @map("is_winter")
+
+  // Formality/Occasion suitability
+  // Options: "Casual", "Smart Casual", "Business Casual", "Business Formal", "Formal/Evening"
+  formality   String   @default("Casual")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId]) // Index on userId for faster queries
+  @@map("clothing_items")
 }
