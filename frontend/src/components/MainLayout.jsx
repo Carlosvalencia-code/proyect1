@@ -19,6 +19,9 @@ const MainLayout = () => {
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
               <>
+                <Link to="/dashboard" className="text-sm font-medium text-seentia-graphite-gray hover:text-seentia-golden-amber transition-colors">Análisis Facial</Link>
+                <Link to="/wardrobe" className="text-sm font-medium text-seentia-graphite-gray hover:text-seentia-golden-amber transition-colors">Mi Guardarropa</Link>
+                <Link to="/outfit-generator" className="text-sm font-medium text-seentia-graphite-gray hover:text-seentia-golden-amber transition-colors">Generar Outfit</Link>
                 {/* Optional: Display user email or name */}
                 {/* {user && user.email && <span className="text-sm text-seentia-graphite-gray">{user.email}</span>} */}
                 {/* <Link to="/profile" className="text-seentia-graphite-gray hover:text-seentia-golden-amber transition-colors">Perfil</Link> */}

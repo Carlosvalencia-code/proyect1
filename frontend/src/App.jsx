@@ -3,6 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import RegisterPage from './pages/RegisterPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx'; // Main page after login
+import WardrobePage from './pages/WardrobePage.jsx';
+import AddEditItemPage from './pages/AddEditItemPage.jsx';
+import OutfitGeneratorPage from './pages/OutfitGeneratorPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import MainLayout from './components/MainLayout.jsx'; // Import MainLayout
 
@@ -28,6 +31,38 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wardrobe"
+          element={
+            <ProtectedRoute>
+              <WardrobePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wardrobe/add-item"
+          element={
+            <ProtectedRoute>
+              <AddEditItemPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wardrobe/edit-item" // Assumes item data is passed via state for editing
+          element={
+            <ProtectedRoute>
+              <AddEditItemPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/outfit-generator"
+          element={
+            <ProtectedRoute>
+              <OutfitGeneratorPage />
             </ProtectedRoute>
           }
         />
