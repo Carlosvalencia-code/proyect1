@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "seentia-backend"
+version = "0.1.0"
+description = "Backend for SEENTIA application"
+authors = ["Jules Agent <jules@agent.ai>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+# FastAPI, Uvicorn, psycopg2-binary, Prisma, etc. will be added here later
+fastapi = "^0.115.13"
+uvicorn = {extras = ["standard"], version = "^0.34.3"}
+psycopg2-binary = "^2.9.10"
+prisma = "^0.15.0"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

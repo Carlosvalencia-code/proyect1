@@ -1,0 +1,31 @@
+/* Import Google Fonts as specified in the brand identity */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-seentia-white-bone text-seentia-graphite-gray font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display; /* Apply Manrope to headings */
+  }
+
+  /* Add other global base styles or overrides here */
+  /* For example, to ensure links use a specific brand color by default: */
+  /* a {
+    @apply text-seentia-golden-amber hover:opacity-80 transition-opacity;
+  } */
+}
+
+/* You can define custom component classes here if needed */
+/* @layer components {
+  .btn-primary {
+    @apply py-2 px-4 bg-seentia-golden-amber text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90 transition-all;
+  }
+} */

@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+coverage/
+
+# Prisma
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+/prisma/migrations/*/*.sql
+/prisma/dev.db
+# Mantener el schema.prisma y el archivo .env si se decide versionar el schema base
+# !prisma/schema.prisma
+# !.env # Comentar si se quiere ignorar el .env local que puede contener secrets
+
+# Editor/OS specific
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Secrets - ensure .env is in this list if it contains sensitive data and is not versioned
+.env
+.env*.local
+secrets/
+*.pem
+*.key
+
+# Logs
+logs/
+*.log
