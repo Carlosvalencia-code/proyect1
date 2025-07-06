@@ -1,0 +1,59 @@
+# Nombre del Workflow de Auditoría de Rebranding para el proyecto Seentia
+name: 'Seentia Rebrand Audit'
+
+# Disparadores: Se ejecuta en cada push a la rama 'main' o en Pull Requests
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Definición del trabajo de auditoría
+  audit-code-with-ai:
+    name: 'Audit Code with Gemini'
+    runs-on: ubuntu-latest # Se ejecuta en un entorno limpio de Linux
+
+    # Permisos necesarios para autenticarse con Google Cloud
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    # 1. Descarga el código del repositorio
+    - name: 'Checkout repository'
+      uses: actions/checkout@v4
+
+    # 2. Se autentica con Google Cloud usando Workload Identity Federation
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+        service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+    # 3. Configura el SDK de Google Cloud
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v2'
+
+    # 4. Crea el archivo de prompt a partir del secreto de GitHub
+    - name: 'Create prompt file from secret'
+      # <-- CORRECCIÓN AQUÍ: Usamos el nombre de secreto válido
+      run: echo "${{ secrets.PROMPT_AUDIT_CONTENT }}" > prompt_audit_rebrand.txt
+
+    # 5. Ejecuta la auditoría en todos los archivos .jsx y .tsx del proyecto
+    - name: 'Run Rebrand Audit on Code Files'
+      run: |
+        echo "--- STARTING AUDIT ---"
+        find src -name "*.jsx" -o -name "*.tsx" | while read file; do
+          echo "--- Analyzing: $file ---"
+          gcloud ai models predict gemini-1.5-pro-001 \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --location=us-central1 \
+            --prompt-file=prompt_audit_rebrand.txt \
+            --prompt-file-attachment=$file > "audit_results.json"
+          
+          cat audit_results.json
+          echo ""
+        done
+        echo "--- AUDIT COMPLETE ---"
