@@ -13,23 +13,23 @@
 
 ## 🚀 ¿Qué hay de Nuevo? (v2.0)
 
-### **🔥 Migración Completa Exitosa**
-- ✅ **FastAPI**: Migración completa desde Flask con performance 3-5x superior
-- ✅ **PostgreSQL**: Base de datos robusta con Prisma ORM reemplazando SQLite
-- ✅ **Redis Cache**: Sistema de cache inteligente para análisis IA (95% reducción en latencia)
-- ✅ **100% Compatibilidad**: Frontend React funciona sin cambios
+### **🔥 Migración y Arquitectura**
+- ✅ **FastAPI**: Migración completa desde Flask con soporte asíncrono nativo y OpenAPI automático
+- ✅ **PostgreSQL**: Persistencia relacional robusta gestionada con Prisma ORM
+- ✅ **Redis Cache**: Capa de caché en memoria para almacenamiento temporal de análisis IA
+- ✅ **Compatibilidad Total**: Integración desacoplada con frontend React
 
-### **⚡ Mejoras de Performance**
-- **🚀 Análisis IA**: Cache inteligente reduce tiempo de respuesta de 3s a 150ms
-- **💰 Costos Optimizados**: 80% reducción en llamadas a Gemini API
-- **📊 Métricas en Tiempo Real**: Dashboard completo de performance y uso
-- **🔄 Async/Await**: Manejo concurrente nativo para máxima eficiencia
+### **⚡ Optimizaciones de Arquitectura**
+- **🚀 Análisis IA**: Cache de respuestas para optimizar latencia en análisis idénticos
+- **💰 Eficiencia de Consumo**: Reducción de llamadas redundantes a Gemini API mediante hashing de imágenes
+- **📊 Monitoreo**: Estructuración de métricas y logging centralizado
+- **🔄 Async/Await**: Concurrencia nativa para endpoints I/O bound
 
-### **🛡️ Seguridad de Nivel Empresarial**
-- **JWT Robusto**: Sistema de autenticación moderno con refresh tokens
-- **Rate Limiting**: Protección avanzada contra abuso de API
-- **Validación Automática**: Esquemas Pydantic garantizan integridad de datos
-- **Logging de Seguridad**: Audit trail completo de todas las operaciones
+### **🛡️ Seguridad y Buenas Prácticas**
+- **Autenticación JWT**: Manejo de sesiones y tokens con refresh
+- **Rate Limiting**: Control de peticiones para prevenir abusos
+- **Validación Estricta**: Modelos Pydantic para tipado y validación de entrada
+- **Audit Logs**: Registro estructurado de eventos del sistema
 
 ---
 
@@ -74,29 +74,35 @@ graph TB
 - **Cache Predictivo**: Resultados instantáneos para análisis repetidos
 - **Validación Multi-Capa**: Garantía de calidad en todos los datos
 
-### **📊 Sistema de Monitoreo Avanzado**
+### **📊 Telemetría y Métricas de Rendimiento (Objetivos de Diseño)**
 ```json
 {
   "cache_performance": {
-    "hit_ratio": "87%",
-    "avg_response_time": "45ms",
-    "memory_usage": "125.6 MB",
-    "total_requests": 1542
+    "hit_ratio_target": "80%+",
+    "avg_cached_response": "<50ms",
+    "storage": "Redis 7 Alpine"
   },
-  "api_metrics": {
-    "requests_per_minute": 34,
-    "active_users": 12,
-    "error_rate": "0.02%",
-    "gemini_api_savings": "80%"
+  "api_architecture": {
+    "framework": "FastAPI (ASGI)",
+    "concurrency_model": "Async / Non-blocking I/O",
+    "database": "PostgreSQL 15 + Prisma"
   }
 }
 ```
 
-### **⚡ Performance Extrema**
-- **FastAPI Async**: Manejo concurrente de hasta 1000+ requests/s
-- **Connection Pooling**: PostgreSQL optimizado para alta concurrencia
-- **Redis Cache**: Sub-segundo response time para análisis repetidos
-- **Compresión Inteligente**: Gzip + LZ4 para respuestas optimizadas
+### **⚡ Características de Rendimiento**
+- **FastAPI Async**: Manejo concurrente de conexiones I/O sin bloqueo del event loop
+- **Connection Pooling**: PostgreSQL configurado para gestión eficiente de pools
+- **Redis Cache**: Sub-segundo response time para consultas y análisis en caché
+- **Compresión HTTP**: Soporte para respuestas optimizadas con Gzip
+
+---
+
+## 📚 Documentación y Reportes de Migración
+Todos los reportes detallados del proceso de migración, verificación paso a paso y arquitectura CI/CD se encuentran organizados en el directorio [`docs/`](./docs/):
+- [Arquitectura CI/CD](./docs/CICD_ARCHITECTURE.md)
+- [Guía de Migración Flask a FastAPI](./docs/MIGRATION_GUIDE.md)
+- [Reportes de Validación y Despliegue Docker](./docs/)
 
 ---
 
