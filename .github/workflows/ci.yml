@@ -33,7 +33,13 @@ jobs:
           TESTING: 'true'
         run: |
           cd apps/api
-          python -m pytest -v
+          python -m pytest -v --tb=short 2>&1 | tee pytest_output.log || {
+            echo "### Pytest Failure Details" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat pytest_output.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
   build-dashboard:
     name: 'Dashboard Build (React + Vite)'
