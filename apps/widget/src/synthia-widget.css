@@ -1,0 +1,227 @@
+﻿/* ==========================================================================
+   SYNTHIA COMMERCE AI - EMBEDDABLE WIDGET STYLES (B2B)
+   ========================================================================== */
+
+:root {
+  --synthia-primary: #111827;
+  --synthia-accent: #d97706;
+  --synthia-accent-light: #fef3c7;
+  --synthia-success: #059669;
+  --synthia-bg: #ffffff;
+  --synthia-card: #f9fafb;
+  --synthia-border: #e5e7eb;
+  --synthia-text: #1f2937;
+  --synthia-muted: #6b7280;
+  --synthia-radius: 12px;
+  --synthia-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Trigger Button on PDP */
+.synthia-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fcd34d;
+  border-radius: var(--synthia-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 10px;
+}
+
+.synthia-trigger-btn:hover {
+  background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.15);
+}
+
+/* Modal Overlay */
+.synthia-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.25s ease-in-out;
+}
+
+.synthia-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Modal Content Card */
+.synthia-modal-card {
+  background: var(--synthia-bg);
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  border-radius: 16px;
+  box-shadow: var(--synthia-shadow);
+  overflow-y: auto;
+  position: relative;
+  transform: scale(0.95);
+  transition: transform 0.25s ease-in-out;
+  padding: 24px;
+}
+
+.synthia-modal-overlay.active .synthia-modal-card {
+  transform: scale(1);
+}
+
+.synthia-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--synthia-border);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.synthia-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--synthia-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.synthia-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--synthia-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* Options / Tabs */
+.synthia-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.synthia-tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--synthia-border);
+  background: var(--synthia-card);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.synthia-tab-btn.active {
+  background: var(--synthia-primary);
+  color: #fff;
+  border-color: var(--synthia-primary);
+}
+
+/* Result Section */
+.synthia-score-banner {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #a7f3d0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.synthia-score-number {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--synthia-success);
+}
+
+.synthia-score-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #065f46;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.synthia-advice-box {
+  background: var(--synthia-card);
+  border-left: 4px solid var(--synthia-accent);
+  padding: 12px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--synthia-text);
+  margin-bottom: 16px;
+}
+
+/* Catalog Recommendations */
+.synthia-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.synthia-product-card {
+  border: 1px solid var(--synthia-border);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  transition: transform 0.15s ease;
+}
+
+.synthia-product-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--synthia-accent);
+}
+
+.synthia-product-img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.synthia-product-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--synthia-primary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.synthia-product-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--synthia-accent-light);
+  color: var(--synthia-accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.synthia-product-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--synthia-primary);
+}

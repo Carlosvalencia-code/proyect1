@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gafas de Sol Carey 'Capri' — L'Optique Studio (Demo Synthia B2B)</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  <!-- Synthia Widget CSS -->
+  <link rel="stylesheet" href="../src/synthia-widget.css">
+
+  <style>
+    :root {
+      --brand-dark: #121212;
+      --brand-cream: #faf8f5;
+      --brand-gold: #c5a059;
+      --brand-gray: #6b7280;
+      --brand-border: #e5e7eb;
+      --brand-surface: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--brand-cream);
+      color: var(--brand-dark);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Demo Banner */
+    .demo-bar {
+      background: #1e1b4b;
+      color: #e0e7ff;
+      font-size: 12px;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 500;
+    }
+    .demo-bar a {
+      color: #93c5fd;
+      text-decoration: underline;
+    }
+
+    /* Header */
+    header {
+      background: var(--brand-surface);
+      border-bottom: 1px solid var(--brand-border);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-logo {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: var(--brand-dark);
+      text-transform: uppercase;
+    }
+    nav a {
+      text-decoration: none;
+      color: var(--brand-dark);
+      font-size: 14px;
+      font-weight: 600;
+      margin-left: 24px;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+
+    .breadcrumbs {
+      font-size: 13px;
+      color: var(--brand-gray);
+      margin-bottom: 24px;
+    }
+    .breadcrumbs span {
+      margin: 0 6px;
+    }
+
+    /* Product Layout */
+    .pdp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      background: var(--brand-surface);
+      padding: 40px;
+      border-radius: 16px;
+      border: 1px solid var(--brand-border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+
+    /* Gallery */
+    .pdp-gallery {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .main-img-wrap {
+      width: 100%;
+      height: 480px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #f3f4f6;
+      border: 1px solid var(--brand-border);
+    }
+    .main-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .main-img-wrap:hover img {
+      transform: scale(1.03);
+    }
+
+    .thumbnails {
+      display: flex;
+      gap: 12px;
+    }
+    .thumb-item {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      cursor: pointer;
+      background: #eee;
+    }
+    .thumb-item.active {
+      border-color: var(--brand-dark);
+    }
+    .thumb-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Info */
+    .pdp-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .pdp-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #92400e;
+      background: #fef3c7;
+      padding: 4px 10px;
+      border-radius: 20px;
+      width: fit-content;
+      margin-bottom: 12px;
+    }
+    .pdp-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+    .pdp-sku {
+      font-size: 12px;
+      color: var(--brand-gray);
+      margin-bottom: 16px;
+    }
+    .pdp-rating {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #d97706;
+      margin-bottom: 20px;
+    }
+    .pdp-price {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--brand-dark);
+      margin-bottom: 4px;
+    }
+    .pdp-installments {
+      font-size: 13px;
+      color: var(--brand-gray);
+      margin-bottom: 24px;
+    }
+
+    .pdp-desc {
+      font-size: 14px;
+      color: #4b5563;
+      margin-bottom: 28px;
+      border-top: 1px solid var(--brand-border);
+      padding-top: 20px;
+    }
+
+    /* Buy Buttons */
+    .btn-buy {
+      width: 100%;
+      padding: 16px;
+      background: var(--brand-dark);
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 12px;
+    }
+    .btn-buy:hover {
+      background: #27272a;
+    }
+
+    /* Synthia Widget Container */
+    .synthia-embed-slot {
+      margin-top: 8px;
+      margin-bottom: 24px;
+    }
+
+    .guarantees {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--brand-gray);
+      border-top: 1px solid var(--brand-border);
+      padding-top: 20px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .pdp-grid {
+        grid-template-columns: 1fr;
+        padding: 24px;
+      }
+      .main-img-wrap {
+        height: 340px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Demo Notice Banner -->
+  <div class="demo-bar">
+    <div>
+      <strong>Synthia Commerce AI Demo:</strong> Vista previa de integración B2B de Visagismo y Colorimetría en eCommerce de Óptica.
+    </div>
+    <div>
+      API Backend: <code>http://localhost:8000/api/v1/widget</code>
+    </div>
+  </div>
+
+  <!-- Brand Header -->
+  <header>
+    <div class="brand-logo">L'Optique Studio</div>
+    <nav>
+      <a href="#">Sol</a>
+      <a href="#">Graduadas</a>
+      <a href="#">Colecciones</a>
+      <a href="#">Tiendas</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="breadcrumbs">
+      Inicio <span>/</span> Gafas de Sol <span>/</span> Acetato Italiano <span>/</span> Capri Carey Polarizadas
+    </div>
+
+    <div class="pdp-grid">
+      <!-- Gallery Column -->
+      <div class="pdp-gallery">
+        <div class="main-img-wrap">
+          <img id="main-product-image" src="https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&q=80" alt="Gafas Capri Carey">
+        </div>
+        <div class="thumbnails">
+          <div class="thumb-item active">
+            <img src="https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=200&q=80" alt="Vista 1">
+          </div>
+          <div class="thumb-item">
+            <img src="https://images.unsplash.com/photo-1508296695146-257a814070b4?w=200&q=80" alt="Vista 2">
+          </div>
+          <div class="thumb-item">
+            <img src="https://images.unsplash.com/photo-1577803645773-f96470509666?w=200&q=80" alt="Vista 3">
+          </div>
+        </div>
+      </div>
+
+      <!-- Info & Widget Column -->
+      <div class="pdp-info">
+        <div class="pdp-badge">Bestseller Verano 2026</div>
+        <h1 class="pdp-title">Gafas de Sol Carey Polarizadas 'Capri'</h1>
+        <div class="pdp-sku">SKU: <strong>OPT-CAREY-01</strong> &bull; Color: Ámbar Carey Clásico</div>
+
+        <div class="pdp-rating">
+          <span>★★★★★</span>
+          <span>4.9 (128 valoraciones verificadas)</span>
+        </div>
+
+        <div class="pdp-price">S/ 289.00</div>
+        <div class="pdp-installments">O 3 cuotas sin intereses de S/ 96.33 con cualquier tarjeta</div>
+
+        <p class="pdp-desc">
+          Fabricadas artesanalmente con acetato de celulosa Mazzucchelli de alta resistencia. 
+          Lentes polarizadas orgánicas con protección UV400 y filtro antirreflejo interior. 
+          Geometría rectangular contemporánea que estiliza los rasgos faciales.
+        </p>
+
+        <!-- Botón de Compra Estándar -->
+        <button class="btn-buy" type="button">Añadir a la Cesta</button>
+
+        <!-- ===================================================================
+             SLOT DE INTEGRACIÓN B2B SYNTHIA COMMERCE AI
+             El script inyecta el botón del estilista virtual aquí automáticamente
+             =================================================================== -->
+        <div class="synthia-embed-slot" id="synthia-widget-container"></div>
+
+        <div class="guarantees">
+          <div>✓ Envío Express asegurado a todo el país</div>
+          <div>✓ Cambios y devoluciones gratis por 30 días</div>
+          <div>✓ Garantía de 2 años en montura y cristales</div>
+          <div>✓ Estuche rígido y gamuza de microfibra de regalo</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================================================================
+       SYNTHIA COMMERCE AI SCRIPT EMBED
+       Carga asíncrona con clave del comercio y SKU de producto activo
+       =================================================================== -->
+  <script 
+    src="../src/synthia-widget.js"
+    data-synthia-auto-init="true"
+    data-merchant-key="demo-eyewear-brand"
+    data-api-url="http://localhost:8000/api/v1/widget"
+    data-sku="OPT-CAREY-01"
+    data-container="#synthia-widget-container">
+  </script>
+
+</body>
+</html>

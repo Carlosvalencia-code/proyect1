@@ -1,523 +1,169 @@
-# 🎨 Synthia Style - Backend API v2.0
+# 🛍️ Synthia Commerce AI (Monorepo)
 
-**API moderna para análisis de estilo personal con Inteligencia Artificial**  
-**⚡ Migración completa: Flask → FastAPI + PostgreSQL + Redis**
+**Motor B2B de Visagismo y Colorimetría con IA para eCommerce de Moda y Óptica**
 
-![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat&logo=redis&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
-
----
-
-## 🚀 ¿Qué hay de Nuevo? (v2.0)
-
-### **🔥 Migración y Arquitectura**
-- ✅ **FastAPI**: Migración completa desde Flask con soporte asíncrono nativo y OpenAPI automático
-- ✅ **PostgreSQL**: Persistencia relacional robusta gestionada con Prisma ORM
-- ✅ **Redis Cache**: Capa de caché en memoria para almacenamiento temporal de análisis IA
-- ✅ **Compatibilidad Total**: Integración desacoplada con frontend React
-
-### **⚡ Optimizaciones de Arquitectura**
-- **🚀 Análisis IA**: Cache de respuestas para optimizar latencia en análisis idénticos
-- **💰 Eficiencia de Consumo**: Reducción de llamadas redundantes a Gemini API mediante hashing de imágenes
-- **📊 Monitoreo**: Estructuración de métricas y logging centralizado
-- **🔄 Async/Await**: Concurrencia nativa para endpoints I/O bound
-
-### **🛡️ Seguridad y Buenas Prácticas**
-- **Autenticación JWT**: Manejo de sesiones y tokens con refresh
-- **Rate Limiting**: Control de peticiones para prevenir abusos
-- **Validación Estricta**: Modelos Pydantic para tipado y validación de entrada
-- **Audit Logs**: Registro estructurado de eventos del sistema
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org)
+[![React](https://img.shields.io/badge/React-18.0+-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## 🏗️ Nueva Arquitectura
+## 📌 Visión General del Proyecto
 
-```mermaid
-graph TB
-    Client[React Frontend] --> API[FastAPI Backend v2.0]
-    API --> Auth[JWT Authentication]
-    API --> Cache[Redis Cache Layer]
-    API --> DB[(PostgreSQL + Prisma)]
-    API --> Gemini[Google Gemini AI]
-    
-    subgraph "🚀 Cache Inteligente"
-        Cache --> Analysis[Análisis Facial/Cromático]
-        Cache --> Sessions[Sesiones de Usuario]
-        Cache --> Config[Configuración del Sistema]
-        Cache --> Metrics[Métricas en Tiempo Real]
-    end
-    
-    subgraph "🗄️ Base de Datos"
-        DB --> Users[Usuarios]
-        DB --> Analyses[Análisis Históricos]
-        DB --> Feedback[Sistema de Feedback]
-        DB --> Analytics[Analytics de Uso]
-    end
-    
-    subgraph "📊 Monitoreo"
-        API --> Logs[Logging Estructurado]
-        API --> Health[Health Checks]
-        API --> Docs[Documentación Automática]
-    end
+**Synthia Commerce AI** es una solución B2B diseñada para marcas y tiendas online de moda, accesorios y óptica. Transforma la experiencia de compra en fichas de producto (PDP) integrando un **estilista virtual embebible** que asesora al cliente según la ciencia del visagismo (geometría facial) y la colorimetría estacional (subtono cálido/frío/neutro).
+
+### ¿Qué problema resuelve?
+* **Alta tasa de devoluciones en moda y óptica online** (estimada entre 25% y 40% en retail digital) debido a incompatibilidad estética con las facciones o el tono de piel del cliente.
+* **Fricción de decisión en la PDP:** Los clientes dudan si una montura o color les favorecerá.
+* **Seguridad y privacidad:** A diferencia de prototipos que filtran API keys en el navegador, Synthia procesa todas las inferencias y recomendaciones en un backend seguro multi-tenant.
+
+---
+
+## 🏛️ Estructura del Monorepo
+
+```
+proyect1/
+├── apps/
+│   ├── api/                  # Backend FastAPI (REST API, visagismo, matching de catálogo)
+│   │   ├── app/
+│   │   │   ├── api/v1/       # Endpoints v1 (Widget B2B, Auth, Wardrobe, Shopping)
+│   │   │   ├── core/         # Configuración, logging, seguridad JWT, caché
+│   │   │   ├── db/           # Adaptadores de base de datos (PostgreSQL/Prisma con fallback)
+│   │   │   ├── schemas/      # Modelos de datos Pydantic v2
+│   │   │   └── services/     # CatalogMatcher, GeminiService, CacheService
+│   │   ├── prisma/           # Esquema de base de datos relacional
+│   │   ├── tests/            # Suite de pruebas automatizadas (pytest)
+│   │   └── requirements.txt  # Dependencias Python
+│   │
+│   ├── dashboard/            # Panel de usuario / comerciante (React + Vite + TypeScript)
+│   │   ├── src/              # Componentes, vistas y contexto de análisis
+│   │   └── package.json
+│   │
+│   └── widget/               # SDK y widget embebible para tiendas online
+│       ├── src/
+│       │   ├── synthia-widget.js   # Script Vanilla JS embebible (< 15 KB, sin dependencias)
+│       │   └── synthia-widget.css  # Estilos UI glassmorphism y diseño responsivo
+│       └── demo/
+│           └── index.html          # Demo interactiva en ficha de producto (PDP) de óptica
+│
+├── deploy/                   # Infraestructura y despliegue (Docker Compose, Nginx, Prometheus)
+└── scripts/                  # Scripts de migración, seeding y verificación
 ```
 
 ---
 
-## 🎯 Características Principales
+## 🚀 Inicio Rápido (Quickstart)
 
-### **✨ Análisis IA de Nueva Generación**
-- **Análisis Facial**: Forma de rostro + recomendaciones personalizadas
-- **Análisis Cromático**: Estación de color + subtonos de piel
-- **Cache Predictivo**: Resultados instantáneos para análisis repetidos
-- **Validación Multi-Capa**: Garantía de calidad en todos los datos
+### 1. Requisitos Previos
+* **Python 3.10+**
+* **Node.js 18+** y npm
+* *(Opcional)* Docker y Docker Compose para levantar PostgreSQL y Redis
 
-### **📊 Telemetría y Métricas de Rendimiento (Objetivos de Diseño)**
-```json
-{
-  "cache_performance": {
-    "hit_ratio_target": "80%+",
-    "avg_cached_response": "<50ms",
-    "storage": "Redis 7 Alpine"
-  },
-  "api_architecture": {
-    "framework": "FastAPI (ASGI)",
-    "concurrency_model": "Async / Non-blocking I/O",
-    "database": "PostgreSQL 15 + Prisma"
-  }
-}
-```
-
-### **⚡ Características de Rendimiento**
-- **FastAPI Async**: Manejo concurrente de conexiones I/O sin bloqueo del event loop
-- **Connection Pooling**: PostgreSQL configurado para gestión eficiente de pools
-- **Redis Cache**: Sub-segundo response time para consultas y análisis en caché
-- **Compresión HTTP**: Soporte para respuestas optimizadas con Gzip
-
----
-
-## 📚 Documentación y Reportes de Migración
-Todos los reportes detallados del proceso de migración, verificación paso a paso y arquitectura CI/CD se encuentran organizados en el directorio [`docs/`](./docs/):
-- [Arquitectura CI/CD](./docs/CICD_ARCHITECTURE.md)
-- [Guía de Migración Flask a FastAPI](./docs/MIGRATION_GUIDE.md)
-- [Reportes de Validación y Despliegue Docker](./docs/)
-
----
-
-## 🔧 Instalación Super Rápida
-
-### **🐳 Docker (Recomendado) - 2 Minutos**
+### 2. Configurar y Ejecutar el Backend (`apps/api`)
 
 ```bash
-# 1. Clonar y configurar
-git clone <repository-url> && cd synthia-backend
-cp .env.example .env
+# Navegar al directorio de la API
+cd apps/api
 
-# 2. Un comando para todo
-docker-compose up -d
+# Crear y activar entorno virtual
+python -m venv .venv
+# En Windows:
+.venv\Scripts\activate
+# En Linux/macOS:
+source .venv/bin/activate
 
-# 3. Verificar instalación
-python test_integration.py
-# ✅ Todas las pruebas deberían pasar
-
-# 4. ¡Listo! API disponible en http://localhost:8000
-```
-
-### **⚙️ Instalación Manual (Desarrollo)**
-
-```bash
-# Prerrequisitos: Python 3.9+, PostgreSQL 13+, Redis 6+
-
-# 1. Base de datos
-sudo -u postgres createdb synthiadb
-sudo -u postgres psql -c "CREATE USER synthia WITH PASSWORD 'synthia123';"
-
-# 2. Dependencias
+# Instalar dependencias
 pip install -r requirements.txt
 
-# 3. Configuración
-cp .env.example .env
-# Editar .env con tu GEMINI_API_KEY
+# Ejecutar el servidor de desarrollo
+uvicorn app.main:app --reload --port 8000
+```
 
-# 4. Migraciones y inicio
-npx prisma migrate deploy
-python run.py
+> **Nota:** La API incluye mecanismos de tolerancia a fallos. Si PostgreSQL o Redis no están iniciados localmente, el servidor levantará en modo desarrollo utilizando almacenamiento en memoria y catálogos de demostración para el widget.
+
+Acceso a la documentación interactiva OpenAPI:
+* Swagger UI: `http://localhost:8000/docs`
+* Health Check: `http://localhost:8000/api/v1/widget/health`
+
+---
+
+### 3. Ejecutar las Pruebas Automatizadas
+
+```bash
+cd apps/api
+pytest tests/test_widget_b2b.py -v
+```
+
+**Resultado de la verificación:**
+```
+tests/test_widget_b2b.py::test_widget_health PASSED
+tests/test_widget_b2b.py::test_merchant_catalog PASSED
+tests/test_widget_b2b.py::test_widget_recommendation_round_face PASSED
+tests/test_widget_b2b.py::test_widget_recommendation_square_face PASSED
+========================= 4 passed in 3.33s =========================
 ```
 
 ---
 
-## 📖 Documentación Interactiva
+### 4. Probar el Widget Embebible B2B (`apps/widget`)
 
-### **🚀 Explora la API en Vivo**
-Una vez ejecutándose (http://localhost:8000):
+El widget está diseñado en Vanilla JS puro sin dependencias externas para integrarse de forma no invasiva en cualquier plataforma (Shopify, WooCommerce, VTEX, Magento o sitios a medida).
 
-- **📚 Swagger UI**: http://localhost:8000/docs
-- **📖 ReDoc**: http://localhost:8000/redoc  
-- **⚙️ OpenAPI**: http://localhost:8000/openapi.json
+1. Asegúrate de tener el backend corriendo en `http://localhost:8000`.
+2. Abre en tu navegador el archivo demo:
+   ```
+   apps/widget/demo/index.html
+   ```
+   *(o sírvelo con cualquier servidor estático como `npx serve apps/widget/demo`)*.
+3. Haz clic en **"✨ Probar con Asesor de Estilo Virtual (AI)"**.
+4. Selecciona tu forma de rostro y subtono o sube una fotografía para calcular la armonía estilística y ver productos recomendados en tiempo real.
 
-### **🎯 Endpoints Estrella**
+#### Código de Integración en Tienda (Ejemplo):
+```html
+<!-- 1. Estilos del Widget -->
+<link rel="stylesheet" href="https://cdn.tusitio.com/synthia-widget.css">
 
-#### **🔐 Autenticación Moderna**
-```bash
-# Registro con validación robusta
-POST /api/v1/auth/register
-{
-  "email": "usuario@ejemplo.com",
-  "password": "password123",
-  "full_name": "Usuario Ejemplo"
-}
-# ✅ Respuesta: JWT + Refresh Token
-```
+<!-- 2. Contenedor en la PDP (junto al botón de Añadir al Carrito) -->
+<div id="synthia-widget-container"></div>
 
-#### **🎭 Análisis Facial con Cache**
-```bash
-POST /api/v1/facial-analysis/analyze
-Authorization: Bearer <token>
-{
-  "image_data": "base64_encoded_image",
-  "preferences": {"style": "classic"}
-}
-# ⚡ Primera vez: ~3s | Repetido: ~150ms (cache hit)
-```
-
-#### **🌈 Análisis Cromático Optimizado**
-```bash
-POST /api/v1/chromatic-analysis/analyze
-{
-  "quiz_responses": {
-    "skin_tone": "warm",
-    "hair_color": "brown", 
-    "eye_color": "green"
-  }
-}
-# 🎯 Resultados cacheados por combinación de respuestas
-```
-
-#### **📊 Monitoreo en Tiempo Real**
-```bash
-# Dashboard de métricas (admin)
-GET /api/v1/cache/metrics
-Authorization: Bearer <admin_token>
-
-# Health check completo
-GET /api/v1/cache/health
-# ✅ Status de todos los servicios
+<!-- 3. Script del Widget con Clave de Comercio y SKU -->
+<script 
+  src="https://cdn.tusitio.com/synthia-widget.js"
+  data-synthia-auto-init="true"
+  data-merchant-key="tu-clave-de-comercio"
+  data-api-url="https://api.tudominio.com/api/v1/widget"
+  data-sku="SKU-ACTUAL"
+  data-container="#synthia-widget-container">
+</script>
 ```
 
 ---
 
-## 🔧 Configuración Avanzada
+### 5. Iniciar el Dashboard Web (`apps/dashboard`)
 
-### **🎛️ Variables de Entorno Esenciales**
-
-```env
-# 🚀 Aplicación
-APP_NAME="Synthia Style API v2.0"
-ENVIRONMENT="production"  # development, staging, production
-DEBUG=false
-
-# 🗄️ PostgreSQL (Prisma)
-DATABASE_URL="postgresql://synthia:password@localhost:5432/synthiadb"
-
-# ⚡ Redis Cache
-REDIS_URL="redis://localhost:6379/0"
-REDIS_ENABLED=true
-CACHE_TTL_SECONDS=3600
-CACHE_COMPRESSION_ENABLED=true
-
-# 🔐 JWT Seguro
-JWT_SECRET_KEY="tu_secret_key_super_ultra_secreto"
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1440
-
-# 🤖 Gemini AI
-GEMINI_API_KEY="tu_gemini_api_key_aqui"
+```bash
+cd apps/dashboard
+npm install
+npm run dev
 ```
 
-### **⚡ Configuración de Cache Optimizada**
-
-```env
-# TTL por Tipo de Análisis
-CACHE_AI_ANALYSIS_TTL_SECONDS=86400       # 24h - Análisis facial
-CACHE_CHROMATIC_ANALYSIS_TTL_SECONDS=43200 # 12h - Análisis cromático
-CACHE_USER_SESSION_TTL_SECONDS=3600       # 1h - Sesiones
-CACHE_ANALYTICS_TTL_SECONDS=1800          # 30min - Analytics
-
-# Compresión Avanzada
-CACHE_COMPRESSION_ALGORITHM="lz4"  # lz4 (rápido) | zstd (mejor ratio)
-CACHE_METRICS_ENABLED=true
-CACHE_WARMUP_ENABLED=true
-```
+El panel estará disponible en `http://localhost:5173`.
 
 ---
 
-## 🧪 Testing y Calidad
+## 🔒 Arquitectura de Seguridad y Privacidad
 
-### **🔬 Suite de Pruebas Automatizada**
-```bash
-# Pruebas de integración completas
-python test_integration.py
-# 📊 Resultado: 8/8 pruebas pasando con métricas detalladas
-
-# Pruebas unitarias
-python -m pytest tests/ -v
-
-# Cobertura de código
-python -m pytest --cov=app --cov-report=html tests/
-```
-
-### **⚡ Desarrollo con Hot Reload**
-```bash
-# Desarrollo con recarga automática
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Debug mode con logs detallados
-DEBUG=true python run.py
-
-# Monitoreo de cache en vivo
-watch -n 2 'curl -s http://localhost:8000/api/v1/cache/health | jq .cache_metrics'
-```
-
-### **🗄️ Gestión de Base de Datos**
-```bash
-# Prisma Studio (GUI visual)
-npx prisma studio  # http://localhost:5555
-
-# Nueva migración
-npx prisma migrate dev --name "nueva_funcionalidad"
-
-# Deploy migraciones a producción
-npx prisma migrate deploy
-```
+1. **Sin filtración de credenciales cliente:**
+   * Las llamadas de IA (Gemini API) se realizan exclusivamente a través de los servicios del backend (`apps/api/app/services/gemini_service.py`), evitando la exposición de `API_KEY` en los bundles de frontend.
+2. **Autenticación Multi-Tenant:**
+   * Cada comercio consumidor del widget se autentica mediante la cabecera HTTP `X-Merchant-Key`.
+3. **Privacidad del Shopper:**
+   * Las imágenes procesadas para visagismo se analizan en memoria de manera efímera para extracción de parámetros geométricos y no se persisten sin consentimiento explícito.
 
 ---
 
-## 📊 Dashboard de Métricas y Monitoreo
+## 📄 Licencia
 
-### **📈 Métricas en Tiempo Real**
-```json
-{
-  "performance_summary": {
-    "api_response_time": "234ms avg",
-    "cache_hit_ratio": "87%",
-    "gemini_api_calls_saved": "80%",
-    "active_connections": 12
-  },
-  "cache_stats": {
-    "total_keys": 1542,
-    "memory_usage": "125.6 MB",
-    "operations_per_second": 45,
-    "compression_ratio": "3.2:1"
-  },
-  "business_metrics": {
-    "daily_analyses": 156,
-    "returning_users": "68%",
-    "avg_session_duration": "8.5min"
-  }
-}
-```
-
-### **🔍 Logging Estructurado**
-```bash
-# Logs en tiempo real con filtros
-tail -f app.log | grep "ANALYSIS_REQUEST"
-
-# Análisis de errores
-grep "ERROR" app.log | jq '.level, .message, .timestamp'
-
-# Performance analytics
-grep "CACHE_HIT" app.log | wc -l  # Conteo de cache hits
-```
-
----
-
-## 🚀 Migración desde Flask
-
-### **📋 Guía de Migración Completa**
-Consulta [**docs/MIGRATION_GUIDE.md**](docs/MIGRATION_GUIDE.md) para:
-
-- 🔄 Scripts de migración automática
-- 📊 Comparativa detallada Flask vs FastAPI
-- 🎯 Métricas de mejora comprobadas
-- 🛠️ Troubleshooting paso a paso
-
-### **🎉 Resultados de la Migración**
-```
-📈 ANTES (Flask)          ➡️  DESPUÉS (FastAPI v2.0)
-⏱️  Tiempo respuesta: 3-5s    ➡️  150ms (cache) / 800ms (nuevo)
-💾 Base de datos: SQLite     ➡️  PostgreSQL + Prisma ORM
-🚀 Performance: 100 req/s   ➡️  1000+ req/s concurrent
-📊 Cache: No disponible     ➡️  Redis con 87% hit ratio
-🔐 Auth: Básica             ➡️  JWT + refresh tokens
-📖 Docs: Manual            ➡️  Auto-generada (OpenAPI)
-```
-
----
-
-## 🔧 Troubleshooting Avanzado
-
-### **🚨 Diagnósticos Rápidos**
-
-#### **PostgreSQL**
-```bash
-# Estado del servicio
-sudo systemctl status postgresql
-
-# Test de conexión
-psql $DATABASE_URL -c "SELECT version();"
-
-# Verificar migraciones
-npx prisma migrate status
-```
-
-#### **Redis Cache**
-```bash
-# Conectividad
-redis-cli -u $REDIS_URL ping
-
-# Estadísticas de memoria
-redis-cli -u $REDIS_URL info memory
-
-# Limpiar cache si necesario
-curl -X DELETE "http://localhost:8000/api/v1/cache/keys/analysis:*"
-```
-
-#### **Gemini AI**
-```bash
-# Verificar API key
-curl -H "Authorization: Bearer $GEMINI_API_KEY" \
-     "https://generativelanguage.googleapis.com/v1/models"
-
-# Test desde la aplicación
-curl "http://localhost:8000/api/v1/cache/health" | jq .services.gemini
-```
-
-### **📊 Performance Debugging**
-```bash
-# Métricas de sistema
-curl "http://localhost:8000/api/v1/cache/metrics" | jq .performance
-
-# Análisis de queries lentas (PostgreSQL)
-tail -f /var/log/postgresql/postgresql-13-main.log | grep "duration:"
-
-# Top claves de Redis por memoria
-redis-cli --bigkeys
-```
-
----
-
-## 📚 Documentación Completa
-
-### **📖 Guías Especializadas**
-- 🚀 [**Guía de Migración**](docs/MIGRATION_GUIDE.md) - Flask → FastAPI
-- 🏗️ [**Arquitectura del Sistema**](docs/ARCHITECTURE.md) - Diseño técnico
-- 🔐 [**Seguridad Avanzada**](docs/SECURITY.md) - Best practices
-- 📊 [**Configuración de Monitoreo**](docs/MONITORING.md) - Métricas y alerts
-- 🚀 [**Despliegue en Producción**](docs/DEPLOYMENT.md) - Escalabilidad
-
-### **🎯 Casos de Uso Comunes**
-- 📱 [**Integración con React**](docs/FRONTEND_INTEGRATION.md)
-- 🤖 [**Optimización de IA**](docs/AI_OPTIMIZATION.md)
-- ⚡ [**Tuning de Performance**](docs/PERFORMANCE_TUNING.md)
-
----
-
-## 🤝 Contribuir al Proyecto
-
-### **🛠️ Setup de Desarrollo**
-```bash
-# 1. Fork y clone
-git clone <tu-fork-url>
-cd synthia-backend
-
-# 2. Configurar entorno
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements-dev.txt
-
-# 3. Pre-commit hooks
-pre-commit install
-
-# 4. Tests antes de contribuir
-python test_integration.py
-pytest tests/ --cov=app
-```
-
-### **📝 Estándares de Código**
-```bash
-# Formatting automático
-black app/ && isort app/
-
-# Type checking
-mypy app/
-
-# Linting
-flake8 app/
-
-# Tests con cobertura mínima 85%
-pytest --cov=app --cov-fail-under=85
-```
-
----
-
-## 🎉 Estadísticas del Proyecto
-
-### **📊 Métricas de Adopción**
-- ⚡ **Performance**: 3-5x mejora sobre Flask
-- 💰 **Ahorro**: 80% reducción en costos de API
-- 🚀 **Escalabilidad**: 10x más requests concurrentes
-- 🔒 **Seguridad**: 100% cobertura de vulnerabilidades conocidas
-- 📚 **Developer Experience**: Documentación automática completa
-
-### **🏆 Reconocimientos Técnicos**
-- ✅ **Type Safety**: 100% type hints coverage
-- ✅ **Test Coverage**: >85% líneas de código
-- ✅ **API Documentation**: Auto-generada y siempre actualizada
-- ✅ **Performance Monitoring**: Métricas en tiempo real
-- ✅ **Production Ready**: Health checks y error handling robusto
-
----
-
-## 📄 Licencia y Soporte
-
-### **📜 Licencia**
-Este proyecto está bajo la **Licencia MIT**. Ver [LICENSE](LICENSE) para detalles.
-
-### **🆘 Canales de Soporte**
-- **🐛 Issues**: [GitHub Issues](../../issues) para bugs y features
-- **📖 Documentación**: `/docs` endpoint siempre actualizado
-- **💬 Discusiones**: [GitHub Discussions](../../discussions) para preguntas
-- **🔍 Health Checks**: `/api/v1/cache/health` para diagnósticos
-
-### **📞 Contacto**
-- **Maintainer**: Equipo Synthia Style
-- **Docs**: Siempre actualizadas en `/docs`
-- **Status**: Monitoreo 24/7 con health checks
-
----
-
-## 🌟 Próximas Características (Roadmap)
-
-### **🚀 v2.1 (Próximo Release)**
-- [ ] **WebSocket Support**: Análisis en tiempo real
-- [ ] **Advanced Analytics**: Dashboard de uso detallado
-- [ ] **A/B Testing**: Framework para experimentos
-- [ ] **Rate Limiting Avanzado**: Por usuario y endpoint
-
-### **🔮 v3.0 (Visión Futura)**
-- [ ] **Microservicios**: Arquitectura distribuida
-- [ ] **GraphQL API**: Queries flexibles
-- [ ] **Machine Learning Pipeline**: Mejora continua de análisis
-- [ ] **Multi-tenant**: Soporte para múltiples organizaciones
-
----
-
-**🎉 ¡Synthia Style Backend v2.0 - El Futuro de la Asesoría de Imagen con IA!**
-
-*Arquitectura moderna, performance extrema, y developer experience de clase mundial.*
-
-[![Deployment Status](https://img.shields.io/badge/Deployment-Production_Ready-brightgreen)]()
-[![API Status](https://img.shields.io/badge/API-Operational-green)]()
-[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen)]()
-[![Documentation](https://img.shields.io/badge/Docs-Complete-blue)]()
+Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para más información.
