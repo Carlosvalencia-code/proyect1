@@ -13,6 +13,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from loguru import logger
 
 from app.core.config import settings
 from app.core.logging import (
@@ -43,10 +44,11 @@ async def lifespan(app: FastAPI):
         # Inicializar cache Redis
         cache_initialized = await cache_service.initialize()
         if cache_initialized:
-            print("✅ Redis cache initialized successfully")
+            logger.info("Redis cache initialized successfully")
         else:
-            print("⚠️  Redis cache initialization failed or disabled")
+            logger.warning("Redis cache initialization fallback/disabled")
         
+        app.state.start_time = time.time()
         yield
         
     finally:
@@ -283,13 +285,6 @@ async def root() -> Dict[str, Any]:
         "health": "/health",
         "api": "/api/v1"
     }
-
-
-# Configurar estado inicial de la aplicación
-@app.on_event("startup")
-async def set_start_time():
-    """Establecer tiempo de inicio de la aplicación"""
-    app.state.start_time = time.time()
 
 
 # Configuración adicional para desarrollo
