@@ -41,7 +41,7 @@ mypy==1.7.1
 fastapi-cors==0.0.6
 
 # Criptografía y seguridad
-cryptography==41.0.8
+cryptography>=41.0.7
 bcrypt==4.1.2
 
 # Utilidades
