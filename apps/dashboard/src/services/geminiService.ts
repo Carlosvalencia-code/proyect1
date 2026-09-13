@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Servicio Seguro de IA para Synthia Dashboard / Client Portal
  * Todas las llamadas de inferencia de IA se canalizan a través del backend FastAPI autenticado,
  * eliminando la exposición de API Keys en el bundle de JavaScript del navegador.
@@ -10,7 +10,7 @@ import {
     ChromaticAnalysisDataAPI,
     ColorSeason,
     SkinUndertone
-} from './types';
+} from '../types';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 

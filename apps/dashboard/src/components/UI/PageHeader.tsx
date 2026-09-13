@@ -44,4 +44,5 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, showBackButton = false, 
   );
 };
 
+export { PageHeader };
 export default PageHeader;
