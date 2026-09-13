@@ -33,7 +33,7 @@ jobs:
           TESTING: 'true'
         run: |
           cd apps/api
-          python -m pytest tests/test_widget_b2b.py -v
+          pytest -v
 
   build-dashboard:
     name: 'Dashboard Build (React + Vite)'
