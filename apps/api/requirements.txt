@@ -71,8 +71,5 @@ urllib3==2.1.0
 msgpack==1.0.7  # Serialización binaria eficiente
 orjson==3.9.10  # JSON rápido
 
-# Decimal handling para precios
-decimal==1.70
-
 # Compatibilidad con Flask (para migración)
 werkzeug==3.0.1
