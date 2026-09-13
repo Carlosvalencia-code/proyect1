@@ -63,7 +63,6 @@ prometheus-client==0.19.0
 
 # HTTP requests y merchant integration
 aiohttp==3.9.1
-httpx==0.25.2
 beautifulsoup4==4.12.2  # Para parsing HTML si se necesita scraping
 lxml==4.9.3  # Parser XML/HTML rápido
 urllib3==2.1.0
