@@ -28,6 +28,9 @@ jobs:
           pip install pytest httpx
 
       - name: Run Pytest Suite
+        env:
+          PYTHONPATH: .
+          TESTING: 'true'
         run: |
           cd apps/api
           python -m pytest tests/test_widget_b2b.py -v
