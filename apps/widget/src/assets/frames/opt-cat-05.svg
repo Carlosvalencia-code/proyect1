@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 160" width="100%" height="100%">
+  <defs>
+    <linearGradient id="burgundyCatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4c0519"/>
+      <stop offset="35%" stop-color="#881337"/>
+      <stop offset="70%" stop-color="#3b0716"/>
+      <stop offset="100%" stop-color="#9f1239"/>
+    </linearGradient>
+    <linearGradient id="plumGradientLens" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3b0716" stop-opacity="0.80"/>
+      <stop offset="60%" stop-color="#4c0519" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#881337" stop-opacity="0.50"/>
+    </linearGradient>
+    <filter id="catShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.30"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#catShadow)">
+    <!-- Patillas -->
+    <path d="M 28 35 L 4 30 L 2 46 L 27 50 Z" fill="#4c0519"/>
+    <path d="M 472 35 L 496 30 L 498 46 L 473 50 Z" fill="#4c0519"/>
+
+    <!-- Cristales Cat-Eye -->
+    <path d="
+      M 45 48
+      C 65 32, 160 30, 212 40
+      C 222 50, 218 108, 195 128
+      C 170 144, 90 144, 68 128
+      C 48 112, 38 65, 45 48 Z"
+      fill="url(#plumGradientLens)"
+    />
+
+    <path d="
+      M 288 40
+      C 340 30, 435 32, 455 48
+      C 462 65, 452 112, 432 128
+      C 410 144, 330 144, 305 128
+      C 282 108, 278 50, 288 40 Z"
+      fill="url(#plumGradientLens)"
+    />
+
+    <!-- Reflejos curvas cat-eye -->
+    <path d="M 70 42 L 150 38 L 95 125 L 68 125 Z" fill="#ffffff" opacity="0.18"/>
+    <path d="M 350 38 L 430 42 L 402 125 L 375 125 Z" fill="#ffffff" opacity="0.18"/>
+
+    <!-- Marco Ojo de Gato (Alas prominentes en extremos superiores) -->
+    <path fill="url(#burgundyCatGrad)" fill-rule="evenodd" d="
+      M 16 32
+      C 45 28, 140 24, 218 36
+      C 232 38, 242 45, 250 46
+      C 258 45, 268 38, 282 36
+      C 360 24, 455 28, 484 32
+      C 495 44, 480 85, 448 128
+      C 422 148, 335 152, 290 138
+      C 275 130, 268 70, 250 70
+      C 232 70, 225 130, 210 138
+      C 165 152, 78 148, 52 128
+      C 20 85, 5 44, 16 32 Z
+      
+      M 45 48
+      C 38 65, 48 112, 68 128
+      C 90 144, 170 144, 195 128
+      C 218 108, 222 50, 212 40
+      C 160 30, 65 32, 45 48 Z
+      
+      M 288 40
+      C 278 50, 282 108, 305 128
+      C 330 144, 410 144, 432 128
+      C 452 112, 462 65, 455 48
+      C 435 32, 340 30, 288 40 Z
+    "/>
+
+    <!-- Detalles dorados en las esquinas de los ojos de gato -->
+    <polygon points="26,35 38,34 32,42" fill="#fbbf24"/>
+    <polygon points="474,35 462,34 468,42" fill="#fbbf24"/>
+
+    <!-- Bisel de luz superior -->
+    <path d="M 22 34 Q 130 26 215 35" stroke="#fda4af" stroke-width="1.2" fill="none" opacity="0.45"/>
+    <path d="M 285 35 Q 370 26 478 34" stroke="#fda4af" stroke-width="1.2" fill="none" opacity="0.45"/>
+  </g>
+</svg>

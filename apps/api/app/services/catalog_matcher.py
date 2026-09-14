@@ -1,4 +1,4 @@
-﻿"""
+"""
 Motor de Armonización de Catálogo B2B (Synthia Catalog Matcher)
 Armoniza visagismo y colorimetría del comprador con el inventario del comercio.
 """
@@ -23,6 +23,7 @@ DEFAULT_DEMO_CATALOG: List[Dict[str, Any]] = [
         "undertone": "warm",
         "frame_shape": "RECTANGULAR",
         "color_family": "tortoise_amber",
+        "tryon_overlay_url": "/assets/frames/opt-carey-01.svg",
         "palette_affinity": ["AUTUMN", "SPRING"],
         "face_shape_affinity": ["ROUND", "OVAL", "HEART"]
     },
@@ -36,6 +37,7 @@ DEFAULT_DEMO_CATALOG: List[Dict[str, Any]] = [
         "undertone": "cool",
         "frame_shape": "ROUND",
         "color_family": "silver_metallic",
+        "tryon_overlay_url": "/assets/frames/opt-titan-02.svg",
         "palette_affinity": ["WINTER", "SUMMER"],
         "face_shape_affinity": ["SQUARE", "OVAL", "DIAMOND"]
     },
@@ -49,6 +51,7 @@ DEFAULT_DEMO_CATALOG: List[Dict[str, Any]] = [
         "undertone": "warm",
         "frame_shape": "AVIATOR",
         "color_family": "gold_amber",
+        "tryon_overlay_url": "/assets/frames/opt-aviat-03.svg",
         "palette_affinity": ["AUTUMN", "SPRING"],
         "face_shape_affinity": ["SQUARE", "HEART", "OVAL"]
     },
@@ -62,6 +65,7 @@ DEFAULT_DEMO_CATALOG: List[Dict[str, Any]] = [
         "undertone": "cool",
         "frame_shape": "SQUARE",
         "color_family": "black",
+        "tryon_overlay_url": "/assets/frames/opt-black-04.svg",
         "palette_affinity": ["WINTER"],
         "face_shape_affinity": ["ROUND", "OVAL"]
     },
@@ -75,6 +79,7 @@ DEFAULT_DEMO_CATALOG: List[Dict[str, Any]] = [
         "undertone": "cool",
         "frame_shape": "CAT_EYE",
         "color_family": "burgundy",
+        "tryon_overlay_url": "/assets/frames/opt-cat-05.svg",
         "palette_affinity": ["WINTER", "AUTUMN"],
         "face_shape_affinity": ["ROUND", "DIAMOND", "OVAL", "SQUARE"]
     }
@@ -145,7 +150,8 @@ class CatalogMatcher:
                     color_family=item.get("color_family"),
                     frame_shape=item.get("frame_shape"),
                     harmony_score=score,
-                    match_tag=badge
+                    match_tag=badge,
+                    tryon_overlay_url=item.get("tryon_overlay_url")
                 )
             )
 

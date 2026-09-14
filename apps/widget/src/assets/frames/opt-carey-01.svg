@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 160" width="100%" height="100%">
+  <defs>
+    <!-- Gradiente Carey Ámbar -->
+    <linearGradient id="tortoiseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3d1e08"/>
+      <stop offset="25%" stop-color="#7a4213"/>
+      <stop offset="50%" stop-color="#2a1405"/>
+      <stop offset="75%" stop-color="#965a1e"/>
+      <stop offset="100%" stop-color="#4a240a"/>
+    </linearGradient>
+    <!-- Gradiente Lentes Polarizadas Ámbar Oscuro -->
+    <linearGradient id="polarizedAmberLens" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1c1108" stop-opacity="0.82"/>
+      <stop offset="65%" stop-color="#331c0a" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#543011" stop-opacity="0.65"/>
+    </linearGradient>
+    <!-- Reflejo en cristal -->
+    <linearGradient id="lensSheen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="subtleShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#subtleShadow)">
+    <!-- Patillas laterales externas -->
+    <path d="M 35 48 L 5 42 L 3 55 L 34 60 Z" fill="#2a1405"/>
+    <path d="M 465 48 L 495 42 L 497 55 L 466 60 Z" fill="#2a1405"/>
+    
+    <!-- Bisagras doradas decorativas -->
+    <rect x="34" y="50" width="5" height="7" rx="1.5" fill="#d4af37"/>
+    <rect x="461" y="50" width="5" height="7" rx="1.5" fill="#d4af37"/>
+
+    <!-- Ojo Izquierdo: Cristal Polarizado -->
+    <rect x="52" y="38" width="168" height="96" rx="20" fill="url(#polarizedAmberLens)"/>
+    <!-- Brillo del cristal izquierdo -->
+    <path d="M 60 44 L 140 44 L 85 120 L 58 120 Z" fill="url(#lensSheen)"/>
+
+    <!-- Ojo Derecho: Cristal Polarizado -->
+    <rect x="280" y="38" width="168" height="96" rx="20" fill="url(#polarizedAmberLens)"/>
+    <!-- Brillo del cristal derecho -->
+    <path d="M 288 44 L 368 44 L 313 120 L 286 120 Z" fill="url(#lensSheen)"/>
+
+    <!-- Marco Completo Carey (con recorte central para cristales) -->
+    <path fill="url(#tortoiseGrad)" fill-rule="evenodd" d="
+      M 32 42
+      C 40 32, 100 28, 220 32
+      C 235 32, 245 42, 250 44
+      C 255 42, 265 32, 280 32
+      C 400 28, 460 32, 468 42
+      C 475 52, 472 125, 455 138
+      C 438 150, 290 148, 275 136
+      C 265 128, 262 72, 250 72
+      C 238 72, 235 128, 225 136
+      C 210 148, 62 150, 45 138
+      C 28 125, 25 52, 32 42 Z
+      
+      M 50 36
+      C 44 36, 40 42, 40 50
+      L 40 120
+      C 40 130, 48 138, 60 138
+      L 205 138
+      C 218 138, 224 128, 224 116
+      L 224 50
+      C 224 40, 216 36, 204 36 Z
+      
+      M 276 36
+      C 264 36, 256 40, 256 50
+      L 256 116
+      C 256 128, 262 138, 275 138
+      L 420 138
+      C 432 138, 440 130, 440 120
+      L 440 50
+      C 440 42, 436 36, 430 36 Z
+    "/>
+
+    <!-- Remaches frontales de acetato estilo mazzucchelli -->
+    <circle cx="42" cy="46" r="2" fill="#d4af37"/>
+    <circle cx="48" cy="46" r="2" fill="#d4af37"/>
+    <circle cx="452" cy="46" r="2" fill="#d4af37"/>
+    <circle cx="458" cy="46" r="2" fill="#d4af37"/>
+
+    <!-- Bisel de luz en el borde superior del marco -->
+    <path d="M 40 35 Q 130 30 220 34" stroke="#e09848" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <path d="M 280 34 Q 370 30 460 35" stroke="#e09848" stroke-width="1.5" fill="none" opacity="0.6"/>
+  </g>
+</svg>

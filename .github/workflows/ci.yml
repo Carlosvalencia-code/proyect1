@@ -77,4 +77,10 @@ jobs:
           test -f apps/widget/src/synthia-widget.js
           test -f apps/widget/src/synthia-widget.css
           test -f apps/widget/demo/index.html
-          echo "All widget assets verified successfully."
+          test -f apps/widget/src/assets/frames/opt-carey-01.svg
+          test -f apps/widget/src/assets/frames/opt-titan-02.svg
+          test -f apps/widget/src/assets/frames/opt-aviat-03.svg
+          test -f apps/widget/src/assets/frames/opt-black-04.svg
+          test -f apps/widget/src/assets/frames/opt-cat-05.svg
+          echo "All widget assets and try-on frame overlays verified successfully."
+

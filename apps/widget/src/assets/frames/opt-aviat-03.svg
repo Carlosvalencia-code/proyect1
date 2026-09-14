@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 160" width="100%" height="100%">
+  <defs>
+    <!-- Gradiente Oro Cepillado -->
+    <linearGradient id="goldAviatorGrad" x1="0%" y1="0%" x2="100%" y2="80%">
+      <stop offset="0%" stop-color="#b8860b"/>
+      <stop offset="35%" stop-color="#ffd700"/>
+      <stop offset="65%" stop-color="#fff8dc"/>
+      <stop offset="100%" stop-color="#daa520"/>
+    </linearGradient>
+    <!-- Gradiente Lentes Aviador Ámbar Flash -->
+    <linearGradient id="amberAviatorLens" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#78350f" stop-opacity="0.80"/>
+      <stop offset="50%" stop-color="#b45309" stop-opacity="0.70"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.55"/>
+    </linearGradient>
+    <filter id="aviatorShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.30"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#aviatorShadow)">
+    <!-- Barra Frontal Superior Recta (Double Brow Bar) -->
+    <rect x="130" y="32" width="240" height="4" rx="2" fill="url(#goldAviatorGrad)"/>
+
+    <!-- Patillas delgadas doradas -->
+    <line x1="50" y1="52" x2="10" y2="48" stroke="url(#goldAviatorGrad)" stroke-width="3" stroke-linecap="round"/>
+    <line x1="450" y1="52" x2="490" y2="48" stroke="url(#goldAviatorGrad)" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Cristal Izquierdo (Forma Gota Aviador) -->
+    <path d="
+      M 65 42
+      C 100 38, 175 38, 205 42
+      C 220 48, 218 105, 195 128
+      C 170 152, 105 152, 78 132
+      C 55 110, 52 50, 65 42 Z"
+      fill="url(#amberAviatorLens)"
+    />
+
+    <!-- Cristal Derecho (Forma Gota Aviador) -->
+    <path d="
+      M 295 42
+      C 325 38, 400 38, 435 42
+      C 448 50, 445 110, 422 132
+      C 395 152, 330 152, 305 128
+      C 282 105, 280 48, 295 42 Z"
+      fill="url(#amberAviatorLens)"
+    />
+
+    <!-- Brillos degradé en lentes -->
+    <path d="M 80 46 L 160 46 L 110 135 L 75 135 Z" fill="#ffffff" opacity="0.18"/>
+    <path d="M 310 46 L 390 46 L 340 135 L 305 135 Z" fill="#ffffff" opacity="0.18"/>
+
+    <!-- Marcos Dorados de Gota -->
+    <path d="
+      M 65 42
+      C 100 38, 175 38, 205 42
+      C 220 48, 218 105, 195 128
+      C 170 152, 105 152, 78 132
+      C 55 110, 52 50, 65 42 Z"
+      fill="none" stroke="url(#goldAviatorGrad)" stroke-width="4"
+    />
+
+    <path d="
+      M 295 42
+      C 325 38, 400 38, 435 42
+      C 448 50, 445 110, 422 132
+      C 395 152, 330 152, 305 128
+      C 282 105, 280 48, 295 42 Z"
+      fill="none" stroke="url(#goldAviatorGrad)" stroke-width="4"
+    />
+
+    <!-- Puente Inferior Curvo -->
+    <path d="M 205 52 C 225 44, 275 44, 295 52" fill="none" stroke="url(#goldAviatorGrad)" stroke-width="4"/>
+
+    <!-- Plaquetas nasales -->
+    <circle cx="218" cy="68" r="4" fill="#fef08a" opacity="0.8" stroke="#ca8a04" stroke-width="1"/>
+    <circle cx="282" cy="68" r="4" fill="#fef08a" opacity="0.8" stroke="#ca8a04" stroke-width="1"/>
+  </g>
+</svg>

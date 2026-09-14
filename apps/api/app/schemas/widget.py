@@ -1,4 +1,4 @@
-﻿"""
+"""
 Esquemas Pydantic para el Widget B2B de Recomendación de Comercio (Synthia B2B)
 """
 
@@ -32,6 +32,7 @@ class CatalogItem(BaseModel):
     frame_shape: Optional[str] = None
     harmony_score: int = Field(..., ge=0, le=100)
     match_tag: str = Field("Favorecedor", description="Badge en UI: Match Perfecto, Top Colorimetría, etc.")
+    tryon_overlay_url: Optional[str] = Field(None, description="URL del asset PNG/SVG transparente para el probador virtual")
 
 
 class WidgetRecommendRequest(BaseModel):

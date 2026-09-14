@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 160" width="100%" height="100%">
+  <defs>
+    <linearGradient id="pianoBlackGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#262626"/>
+      <stop offset="40%" stop-color="#0f0f0f"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="smokedLens" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.88"/>
+      <stop offset="60%" stop-color="#171717" stop-opacity="0.82"/>
+      <stop offset="100%" stop-color="#262626" stop-opacity="0.75"/>
+    </linearGradient>
+    <filter id="blackShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.40"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#blackShadow)">
+    <!-- Patillas laterales -->
+    <path d="M 36 45 L 6 38 L 4 54 L 35 58 Z" fill="#0f0f0f"/>
+    <path d="M 464 45 L 494 38 L 496 54 L 465 58 Z" fill="#0f0f0f"/>
+
+    <!-- Cristales Cuadrados Ahumados -->
+    <rect x="52" y="38" width="168" height="96" rx="14" fill="url(#smokedLens)"/>
+    <rect x="280" y="38" width="168" height="96" rx="14" fill="url(#smokedLens)"/>
+
+    <!-- Reflejos rectos de luz de estudio -->
+    <path d="M 62 44 L 140 44 L 85 122 L 58 122 Z" fill="#ffffff" opacity="0.12"/>
+    <path d="M 290 44 L 368 44 L 313 122 L 286 122 Z" fill="#ffffff" opacity="0.12"/>
+
+    <!-- Marco de Acetato Negro Piano Grueso -->
+    <path fill="url(#pianoBlackGrad)" fill-rule="evenodd" d="
+      M 30 38
+      L 220 38
+      C 232 38, 242 46, 250 48
+      C 258 46, 268 38, 280 38
+      L 470 38
+      C 476 38, 478 44, 476 56
+      L 462 135
+      C 460 144, 452 148, 442 148
+      L 278 148
+      C 268 148, 262 140, 260 130
+      L 254 75
+      C 252 68, 248 68, 246 75
+      L 240 130
+      C 238 140, 232 148, 222 148
+      L 58 148
+      C 48 148, 40 144, 38 135
+      L 24 56
+      C 22 44, 24 38, 30 38 Z
+      
+      M 52 46
+      L 210 46
+      C 216 46, 220 50, 220 56
+      L 214 126
+      C 214 132, 210 136, 204 136
+      L 62 136
+      C 56 136, 50 132, 50 126
+      L 44 56
+      C 44 50, 46 46, 52 46 Z
+      
+      M 290 46
+      L 448 46
+      C 454 46, 456 50, 456 56
+      L 450 126
+      C 450 132, 444 136, 438 136
+      L 296 136
+      C 290 136, 286 132, 286 126
+      L 280 56
+      C 280 50, 284 46, 290 46 Z
+    "/>
+
+    <!-- Remaches dobles plateados de esquina -->
+    <rect x="36" y="44" width="3" height="6" rx="1" fill="#e5e7eb"/>
+    <rect x="41" y="44" width="3" height="6" rx="1" fill="#e5e7eb"/>
+    <rect x="456" y="44" width="3" height="6" rx="1" fill="#e5e7eb"/>
+    <rect x="461" y="44" width="3" height="6" rx="1" fill="#e5e7eb"/>
+    
+    <!-- Bisel brillante blanco en el borde superior del marco -->
+    <line x1="34" y1="39" x2="225" y2="39" stroke="#ffffff" stroke-width="1" opacity="0.35"/>
+    <line x1="275" y1="39" x2="466" y2="39" stroke="#ffffff" stroke-width="1" opacity="0.35"/>
+  </g>
+</svg>

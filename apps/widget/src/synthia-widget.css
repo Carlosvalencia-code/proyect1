@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    SYNTHIA COMMERCE AI - EMBEDDABLE WIDGET STYLES (B2B)
    ========================================================================== */
 
@@ -224,4 +224,429 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--synthia-primary);
+  margin-bottom: 6px;
 }
+
+.synthia-tryon-card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.synthia-tryon-card-btn:hover {
+  background: #fde68a;
+  border-color: #fcd34d;
+}
+
+/* ==========================================================================
+   VIRTUAL TRY-ON (VTO) / LIVE MIRROR STYLES
+   ========================================================================== */
+
+/* Main Mode Navigation (Visagismo vs Try-On) */
+.synthia-mode-nav {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.synthia-mode-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--synthia-muted);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.synthia-mode-btn.active {
+  background: #ffffff;
+  color: var(--synthia-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Try-On View Layout */
+.synthia-tryon-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.synthia-tryon-header-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--synthia-border);
+}
+
+.synthia-tryon-model-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--synthia-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.synthia-tryon-match-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #065f46;
+  background: #d1fae5;
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+/* Canvas Display Area */
+.synthia-tryon-canvas-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 350px;
+  background: #0f172a;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#synthia-tryon-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+#synthia-tryon-canvas:active {
+  cursor: grabbing;
+}
+
+/* Canvas Draggable Hint Pill */
+.synthia-tryon-hint {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  pointer-events: none;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Prompt Overlay when Camera is Stopped */
+.synthia-tryon-empty-state {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  z-index: 2;
+}
+
+.synthia-empty-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  color: #94a3b8;
+}
+
+.synthia-empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.synthia-empty-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  max-width: 320px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.synthia-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.synthia-btn-activate-cam {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
+  transition: transform 0.15s ease;
+}
+
+.synthia-btn-activate-cam:hover {
+  transform: translateY(-1px);
+}
+
+.synthia-btn-upload-photo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+}
+
+.synthia-btn-demo-face {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 11px;
+  padding: 6px 10px;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Calibration Sliders Toolbar */
+.synthia-calibration-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--synthia-border);
+  font-size: 11px;
+}
+
+.synthia-slider-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.synthia-slider-item label {
+  font-weight: 600;
+  color: var(--synthia-muted);
+  white-space: nowrap;
+}
+
+.synthia-slider-item input[type="range"] {
+  width: 100%;
+  accent-color: var(--synthia-accent);
+  cursor: pointer;
+}
+
+.synthia-btn-reset-pos {
+  background: transparent;
+  border: 1px solid var(--synthia-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--synthia-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.synthia-btn-reset-pos:hover {
+  background: #e2e8f0;
+  color: var(--synthia-primary);
+}
+
+/* Horizontal Frame Carousel Switcher */
+.synthia-carousel-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--synthia-primary);
+  margin-top: 4px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.synthia-frame-carousel {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+.synthia-frame-item {
+  flex: 0 0 90px;
+  border: 2px solid var(--synthia-border);
+  border-radius: 8px;
+  padding: 6px;
+  text-align: center;
+  cursor: pointer;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.synthia-frame-item:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.synthia-frame-item.active {
+  border-color: var(--synthia-accent);
+  background: #fffbeb;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15);
+}
+
+.synthia-frame-thumb {
+  width: 100%;
+  height: 38px;
+  object-fit: contain;
+  margin-bottom: 4px;
+}
+
+.synthia-frame-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--synthia-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.synthia-frame-score {
+  font-size: 9px;
+  font-weight: 700;
+  color: #059669;
+}
+
+/* Try-On Actions Footer */
+.synthia-tryon-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.synthia-btn-snapshot {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--synthia-primary);
+  background: #f1f5f9;
+  border: 1px solid var(--synthia-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.synthia-btn-snapshot:hover {
+  background: #e2e8f0;
+}
+
+.synthia-btn-add-cart {
+  flex: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--synthia-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.synthia-btn-add-cart:hover {
+  background: #000000;
+}
+
+/* Secondary PDP button */
+.synthia-tryon-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: var(--synthia-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.synthia-tryon-trigger-btn:hover {
+  background: #0f172a;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
