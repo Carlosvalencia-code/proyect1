@@ -6,15 +6,15 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_DB: synthia_style_db
-      POSTGRES_USER: synthia_user
-      POSTGRES_PASSWORD: synthia_password
+      POSTGRES_DB: ${POSTGRES_DB:-synthia_style_db}
+      POSTGRES_USER: ${POSTGRES_USER:-synthia_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synthia_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U synthia_user -d synthia_style_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-synthia_user} -d ${POSTGRES_DB:-synthia_style_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,15 +34,17 @@ services:
 
   # Aplicación FastAPI
   synthia-backend:
-    build: .
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile.dev
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://synthia_user:synthia_password@postgres:5432/synthia_style_db
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-synthia_user}:${POSTGRES_PASSWORD:-synthia_password}@postgres:5432/${POSTGRES_DB:-synthia_style_db}
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=development
       - DEBUG=true
-      - SECRET_KEY=your-super-secret-key-change-this-in-production
+      - SECRET_KEY=${SECRET_KEY:-development_secret_key_synthia_style}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - ./uploads:/app/uploads

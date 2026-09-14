@@ -36,7 +36,8 @@ export const getFacialAnalysisFromGemini = async (base64ImageData: string): Prom
       
       const faceShapeKey = Object.values(FaceShape).find(
         fs => fs.toLowerCase() === String(data.visagism.face_shape).toLowerCase()
-      ) || FaceShape.Oval;
+      ) || FaceShape.Ovalado;
+
 
       return {
         forma_rostro: faceShapeKey,
@@ -102,11 +103,11 @@ export const getColorAnalysisFromGemini = async (quizResponses: Record<string, s
 
       const seasonKey = Object.values(ColorSeason).find(
         cs => cs.toLowerCase() === season.toLowerCase()
-      ) || ColorSeason.Autumn;
+      ) || ColorSeason.Otono;
 
       const undertoneKey = Object.values(SkinUndertone).find(
         su => su.toLowerCase() === undertone.toLowerCase()
-      ) || SkinUndertone.Warm;
+      ) || SkinUndertone.Calido;
 
       return {
         estacion: seasonKey,
@@ -137,7 +138,7 @@ export const getColorAnalysisFromGemini = async (quizResponses: Record<string, s
  * Fallbacks estables para entorno de desarrollo sin backend encendido
  */
 const getOfflineFacialAnalysisFallback = (): FacialAnalysisDataAPI => ({
-  forma_rostro: FaceShape.Oval,
+  forma_rostro: FaceShape.Ovalado,
   caracteristicas_destacadas: ["Proporción armónica", "Pómulos equilibrados", "Mandíbula suave"],
   confianza_analisis: 88,
   recomendaciones: {
@@ -154,8 +155,8 @@ const getOfflineFacialAnalysisFallback = (): FacialAnalysisDataAPI => ({
 });
 
 const getOfflineColorAnalysisFallback = (): ChromaticAnalysisDataAPI => ({
-  estacion: ColorSeason.Autumn,
-  subtono: SkinUndertone.Warm,
+  estacion: ColorSeason.Otono,
+  subtono: SkinUndertone.Calido,
   confianza_analisis: 90,
   descripcion: "Paleta Otoño Cálido: tonalidades ricas, terrosas y doradas.",
   paleta_primaria: [
@@ -163,6 +164,7 @@ const getOfflineColorAnalysisFallback = (): ChromaticAnalysisDataAPI => ({
     { color: "Verde Oliva", codigo_hex: "#808000", explicacion: "Resalta los matices dorados." },
     { color: "Ámbar Carey", codigo_hex: "#FFBF00", explicacion: "Armonía natural con el iris y piel." }
   ],
+
   colores_evitar: [
     { color: "Plata Fría", codigo_hex: "#C0C0C0", explicacion: "Contraste excesivamente duro." },
     { color: "Azul Eléctrico", codigo_hex: "#0000FF", explicacion: "Opaca la calidez de la piel." }

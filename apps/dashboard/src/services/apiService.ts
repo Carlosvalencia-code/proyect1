@@ -3,12 +3,20 @@
 // =============================================================================
 // Centralized API service for FastAPI backend integration
 
-import { 
+import type { 
   FacialAnalysisDataAPI, 
   ChromaticAnalysisDataAPI,
   User,
-  FeedbackSubmission
+  FeedbackSubmission,
+  WardrobeItem,
+  WardrobeStats,
+  WardrobeAnalysis,
+  Outfit,
+  OutfitSuggestion,
+  OutfitGenerationRequest,
+  OutfitGenerationResponse
 } from '../types';
+
 
 export interface LoginResponse {
   access_token: string;
@@ -630,13 +638,5 @@ export const formatErrorMessage = (error: any): string => {
   return 'An unexpected error occurred. Please try again.';
 };
 
-// =============================================================================
-// TYPE EXPORTS
-// =============================================================================
 
-export type {
-  LoginResponse,
-  RegisterRequest,
-  LoginRequest,
-  ApiError,
-};
+

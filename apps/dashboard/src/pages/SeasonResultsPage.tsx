@@ -5,7 +5,8 @@ from 'react-router-dom';
 import Button from '../components/UI/Button';
 import PageHeader from '../components/UI/PageHeader';
 import { useAnalysis } from '../contexts/AnalysisContext';
-import { ColorSeason, SkinUndertone, ChromaticAnalysisDataAPI, ColorRecomendacionItem } from '../types';
+import { ColorSeason, ColorRecomendacionItem } from '../types';
+
 import { SEASON_PALETTE_IMAGES, getSeasonDescription, color_seasons_db } from '../constants';
 import { getColorAnalysisFromGemini } from '../services/geminiService';
 import LoadingSpinner from '../components/UI/LoadingSpinner';

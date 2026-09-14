@@ -6,7 +6,7 @@ import { LoadingSpinner } from '../components/UI/LoadingSpinner';
 import { Plus, Search, Filter, Grid, List, Heart, Eye, ShoppingBag } from '../components/icons';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { apiService } from '../services/apiService';
-import { WardrobeItem, WardrobeStats } from '../types';
+import { WardrobeItem } from '../types';
 
 export const WardrobePage: React.FC = () => {
   const {
@@ -18,9 +18,9 @@ export const WardrobePage: React.FC = () => {
     setStats,
     setStatsError,
     updateItem,
-    setViewMode: setContextViewMode,
-    setFilters
+    setViewMode: setContextViewMode
   } = useWardrobe();
+
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -105,7 +105,7 @@ export const WardrobePage: React.FC = () => {
                          item.color.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategory = !filterCategory || item.category === filterCategory;
-    const matchesSeason = !filterSeason || item.season.includes(filterSeason);
+    const matchesSeason = !filterSeason || item.season.includes(filterSeason as any);
     const matchesFavorites = !showFavoritesOnly || item.is_favorite;
 
     return matchesSearch && matchesCategory && matchesSeason && matchesFavorites;
@@ -114,10 +114,11 @@ export const WardrobePage: React.FC = () => {
   if (loading || statsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="large" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
+
 
   if (error || statsError) {
     return (

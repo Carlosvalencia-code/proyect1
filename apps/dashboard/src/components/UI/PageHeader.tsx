@@ -1,16 +1,16 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, Cog6ToothIcon } from '../icons'; // Assuming you have an icons file
+import { ArrowLeftIcon } from '../icons';
 
 interface PageHeaderProps {
   title: string;
+  subtitle?: string;
   showBackButton?: boolean;
   onBack?: () => void;
   rightAction?: React.ReactNode;
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ title, showBackButton = false, onBack, rightAction }) => {
+const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, showBackButton = false, onBack, rightAction }) => {
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -35,7 +35,10 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, showBackButton = false, 
                 <ArrowLeftIcon className="h-6 w-6" />
               </button>
             )}
-            <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
+            <div>
+              <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
+              {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+            </div>
           </div>
           {rightAction && <div>{rightAction}</div>}
         </div>
@@ -46,3 +49,4 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, showBackButton = false, 
 
 export { PageHeader };
 export default PageHeader;
+

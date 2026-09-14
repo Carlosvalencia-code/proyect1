@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../components/UI/Button';
 import PageHeader from '../components/UI/PageHeader';
 import { useAnalysis } from '../contexts/AnalysisContext';
-import { FaceShape, RecomendacionItem } from '../types';
+import type { RecomendacionItem } from '../types';
 import { XMarkIcon, FaceSmileIcon } from '../components/icons';
-import { getFaceShapeDescription, FACE_SHAPE_IMAGE_URL, facial_shapes_db } from '../constants';
+import { getFaceShapeDescription, facial_shapes_db } from '../constants';
+
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const ResultCard: React.FC<{title: string; value: string | number; icon?: React.ElementType; className?: string}> = ({title, value, icon: Icon, className=""}) => (

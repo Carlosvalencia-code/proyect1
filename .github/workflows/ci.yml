@@ -63,6 +63,7 @@ jobs:
       - name: Build Dashboard
         run: |
           cd apps/dashboard
+          npm run type-check
           npm run build
 
   verify-widget:

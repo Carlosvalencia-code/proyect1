@@ -19,7 +19,6 @@ import ProfilePage from './pages/ProfilePage';
 import { WardrobePage } from './pages/WardrobePage';
 import { OutfitGeneratorPage } from './pages/OutfitGeneratorPage';
 import BottomNavigationBar from './components/Navigation/BottomNavigationBar';
-import PageHeader from './components/UI/PageHeader';
 
 // ProtectedRoute component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {

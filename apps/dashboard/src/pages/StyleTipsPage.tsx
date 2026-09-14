@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/UI/PageHeader';
 import Button from '../components/UI/Button';
 import { useAnalysis } from '../contexts/AnalysisContext';
-import { StyleTip as StyleTipType, RecomendacionItem, ColorRecomendacionItem } from '../types'; // Renamed to avoid conflict
-import { facial_shapes_db, color_seasons_db } from '../constants'; // For fallback/more info
+import { color_seasons_db } from '../constants';
+import type { RecomendacionItem, ColorRecomendacionItem } from '../types';
 
 interface TipCardProps {
   title: string;
@@ -33,7 +33,6 @@ const TipCard: React.FC<TipCardProps> = ({ title, description, imageUrl, hexColo
   </div>
 );
 
-
 const StyleTipsPage: React.FC = () => {
   const navigate = useNavigate();
   const { analysis } = useAnalysis();
@@ -43,19 +42,20 @@ const StyleTipsPage: React.FC = () => {
 
   // Facial recommendations
   if (facialData?.recomendaciones) {
-    facialData.recomendaciones.cortes_pelo.slice(0,1).forEach(item => generatedTips.push({ title: `Haircut: ${item.nombre}`, description: item.explicacion, imageUrl: `https://picsum.photos/seed/hairtip${item.nombre}/300/200`, category: "Hairstyle" }));
-    facialData.recomendaciones.gafas.slice(0,1).forEach(item => generatedTips.push({ title: `Glasses: ${item.tipo}`, description: item.explicacion, imageUrl: `https://picsum.photos/seed/glatip${item.tipo}/300/200`, category: "Eyewear" }));
-    facialData.recomendaciones.escotes.slice(0,1).forEach(item => generatedTips.push({ title: `Neckline: ${item.tipo}`, description: item.explicacion, imageUrl: `https://picsum.photos/seed/nectip${item.tipo}/300/200`, category: "Neckline" }));
+    facialData.recomendaciones.cortes_pelo.slice(0,1).forEach((item: RecomendacionItem) => generatedTips.push({ title: `Haircut: ${item.nombre}`, description: item.explicacion, imageUrl: `https://picsum.photos/seed/hairtip${item.nombre}/300/200`, category: "Hairstyle" }));
+    facialData.recomendaciones.gafas.slice(0,1).forEach((item: RecomendacionItem) => generatedTips.push({ title: `Glasses: ${item.tipo}`, description: item.explicacion, imageUrl: `https://picsum.photos/seed/glatip${item.tipo}/300/200`, category: "Eyewear" }));
+    facialData.recomendaciones.escotes.slice(0,1).forEach((item: RecomendacionItem) => generatedTips.push({ title: `Neckline: ${item.tipo}`, description: item.explicacion, imageUrl: `https://picsum.photos/seed/nectip${item.tipo}/300/200`, category: "Neckline" }));
   }
 
   // Chromatic recommendations
   if (geminiChromatic?.paleta_primaria) {
-    geminiChromatic.paleta_primaria.slice(0, 2).forEach(item => generatedTips.push({ title: `Color: ${item.color}`, description: item.explicacion, hexColor: item.codigo_hex, category: `Your ${geminiChromatic.estacion} Palette`}));
+    geminiChromatic.paleta_primaria.slice(0, 2).forEach((item: ColorRecomendacionItem) => generatedTips.push({ title: `Color: ${item.color}`, description: item.explicacion, hexColor: item.codigo_hex, category: `Your ${geminiChromatic.estacion} Palette`}));
   } else if (localChromatic?.season) {
     // Fallback to DB if Gemini palette not available
     const dbSeason = color_seasons_db[localChromatic.season.toLowerCase()];
-    dbSeason?.paleta_primaria.slice(0,2).forEach(item => generatedTips.push({ title: `Color: ${item.color}`, description: item.explicacion, hexColor: item.codigo_hex, category: `Your ${localChromatic.season} Palette`}));
+    dbSeason?.paleta_primaria.slice(0,2).forEach((item: ColorRecomendacionItem) => generatedTips.push({ title: `Color: ${item.color}`, description: item.explicacion, hexColor: item.codigo_hex, category: `Your ${localChromatic.season} Palette`}));
   }
+
 
 
   return (

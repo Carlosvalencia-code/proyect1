@@ -1,16 +1,13 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { 
+import type { 
     UserAnalysis, 
     FacialAnalysisDataAPI, 
     LocalChromaticAnalysis,
     ChromaticAnalysisDataAPI,
-    StyleTip,
-    FaceShape, // For default initialization
-    SkinUndertone,
-    ColorSeason
+    StyleTip
 } from '../types';
-import { MOCK_STYLE_TIPS, determine_color_season, facial_shapes_db, color_seasons_db } from '../constants';
+import { MOCK_STYLE_TIPS, determine_color_season } from '../constants';
+
 
 interface AnalysisContextType {
   analysis: UserAnalysis;

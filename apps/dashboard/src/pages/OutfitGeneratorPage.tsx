@@ -8,11 +8,9 @@ import {
 } from '../components/icons';
 import { useWardrobe } from '../contexts/WardrobeContext';
 import { apiService } from '../services/apiService';
-import {
-  WardrobeItem,
+import type {
   OutfitSuggestion,
-  OutfitGenerationRequest,
-  OutfitGenerationResponse
+  OutfitGenerationRequest
 } from '../types';
 
 export const OutfitGeneratorPage: React.FC = () => {
@@ -21,9 +19,9 @@ export const OutfitGeneratorPage: React.FC = () => {
     setSuggestionsLoading,
     setSuggestions,
     setSuggestionsError,
-    clearSuggestions,
     addOutfit
   } = useWardrobe();
+
 
   const [selectedSuggestion, setSelectedSuggestion] = useState<number>(0);
 
@@ -309,7 +307,7 @@ export const OutfitGeneratorPage: React.FC = () => {
                 size="lg"
               >
                 {loading ? (
-                  <LoadingSpinner size="small" />
+                  <LoadingSpinner size="sm" />
                 ) : (
                   <Sparkles className="w-5 h-5" />
                 )}
@@ -351,8 +349,9 @@ export const OutfitGeneratorPage: React.FC = () => {
               <div className="space-y-6">
                 {/* Outfit Items */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {getCurrentSuggestion().items.map((item, index) => (
+                  {getCurrentSuggestion().items.map((item) => (
                     <div key={item.id} className="text-center">
+
                       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
                         {item.thumbnail_url || item.image_url[0] ? (
                           <img

@@ -6,7 +6,8 @@ import Button from '../components/UI/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalysis } from '../contexts/AnalysisContext';
 import { DEFAULT_USER_AVATAR } from '../constants';
-import { FaceSmileIcon, SunIcon, Cog6ToothIcon, HeartIcon, ArrowLeftIcon, SparklesIcon } from '../components/icons'; // Added SparklesIcon
+import { FaceSmileIcon, SunIcon, Cog6ToothIcon, HeartIcon, SparklesIcon } from '../components/icons';
+
 
 interface InfoRowProps {
   icon: React.ElementType;
